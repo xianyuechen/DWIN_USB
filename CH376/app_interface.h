@@ -6,7 +6,7 @@
 文 件 名   : app_interface.h
 版 本 号   : V1.0
 作    者   : chenxianyue
-生成日期   : 2019年6月4日
+生成日期   : 2019年6月21日
 功能描述   : CH376应用程序接口
 修改历史   :
 日    期   : 
@@ -40,20 +40,22 @@
 #define FILE_ALL						(FILE_T5L51_BIN | FILE_DWINOS_BIN |FILE_XXX_LIB)	/* 整体系统升级 */
 #define DWIN_DIR						("/DWIN_SET")	/* DWIN存放升级文件的文件夹 */
 #define MATCH_LIST_SIZE					(10)	/* 匹配文件列表的文件数目 */
+
 /********************************对外函数声明*********************************/
 
-UINT8 CH376HostInit(void);
-
-UINT8 Query376Interrupt(void);
-
-UINT8 CH376TouchNewFile(PUINT8 PathName);
-
-UINT8 CH376TouchDir(PUINT8 PathName);
-
+/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
+UINT8 CH376USBInit(void);
+/* 创建新文件 */
+UINT8 CH376TouchNewFile(PUINT8 pPathName);
+/* 创建工作目录 */
+UINT8 CH376TouchDir(PUINT8 pPathName);
+/* 删除文件或者目录 */
+UINT8 CH376RmFile(PUINT8 pPathName);
+/* 读取文件信息 */
 UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize);
-
+/* 写入文件、不存在则新建 */
 UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag);
-
+/* 搜索DWIN升级文件 */
 UINT8 FindDWINFile(PUINT8 MatchString);
 
 #endif

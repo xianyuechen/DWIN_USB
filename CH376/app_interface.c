@@ -6,7 +6,7 @@
 文 件 名   : app_interface.c
 版 本 号   : V1.0
 作    者   : chenxianyue
-生成日期   : 2019年6月4日
+生成日期   : 2019年6月21日
 功能描述   : CH376应用程序接口
 修改历史   :
 日    期   : 
@@ -14,10 +14,20 @@
 修改内容   : 	
 ******************************************************************************/
 #include "app_interface.h"
-
+/********************************对内函数声明*********************************/
 UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize);
 void Delay(void);
 
+/*****************************************************************************
+ 函 数 名  : Delay	软件延时约 0.6ms
+ 功能描述  : 延时函数
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void Delay(void)
 {
 	UINT8 i, j;
@@ -25,7 +35,18 @@ void Delay(void)
 		for(j = 0; j < 100; j++);
 }
 
-UINT8 CH376HostInit(void)					/* 检测CH376通讯、设置USB工作模式 */
+/*****************************************************************************
+ 函 数 名  : CH376USBInit
+ 功能描述  : 检测CH376通讯、设置USB工作模式、磁盘初始化
+ 输入参数  : 无	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376USBInit(void)
 {
 	UINT8 i = 0, Status = 0;
 	xWriteCH376Cmd(CMD11_CHECK_EXIST);  	/* 测试单片机与CH376之间的通讯接口 */
@@ -51,29 +72,71 @@ UINT8 CH376HostInit(void)					/* 检测CH376通讯、设置USB工作模式 */
 	}
 	return USB_INT_SUCCESS;
 }
-
-UINT8 CH376TouchNewFile(PUINT8 PathName)	/* 创建新文件 */
+/*****************************************************************************
+ 函 数 名  : CH376TouchNewFile
+ 功能描述  : 创建新文件,支持多级路径
+ 输入参数  : PUINT8 pPathName 文件绝对路径名	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376TouchNewFile(PUINT8 pPathName)
 {
-	AlphabetTransfrom(PathName);
-	return (CH376FileCreatePath(PathName));	
+	AlphabetTransfrom(pPathName);
+	return (CH376FileCreatePath(pPathName));	
 }
-
-UINT8 CH376RmFile(PUINT8 PathName)				/* 删除文件或者目录 */
+/*****************************************************************************
+ 函 数 名  : CH376RmFile
+ 功能描述  : 删除文件或者目录,支持多级路径
+ 输入参数  : PUINT8 pPathName 文件绝对路径名	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376RmFile(PUINT8 pPathName)
 {
-	AlphabetTransfrom(PathName);
-	return (CH376FileDeletePath(PathName));
+	AlphabetTransfrom(pPathName);
+	return (CH376FileDeletePath(pPathName));
 }
-
-UINT8 CH376TouchDir(PUINT8 PathName)			/* 创建工作目录 */
+/*****************************************************************************
+ 函 数 名  : CH376TouchDir
+ 功能描述  : 创建工作目录
+ 输入参数  : PUINT8 pPathName 文件绝对路径名	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376TouchDir(PUINT8 pPathName)
 {
-	AlphabetTransfrom(PathName);
-	return (CH376DirCreate(PathName));	
+	AlphabetTransfrom(pPathName);
+	return (CH376DirCreate(pPathName));	
 }
-
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)	
+/*****************************************************************************
+ 函 数 名  : CH376ReadFile
+ 功能描述  : 读取文件信息
+ 输入参数  : PUINT8 pPathName  文件绝对路径名
+             PUINT8 pBuf       缓冲区数据长度
+			 PUINT32 pFileSize 将返回的文件长度	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)	/* 读取文件信息 */	
 {	/* 字符存储缓冲区pBuf 4096字节 = 8个扇区 */
-	UINT8 Status;
-	UINT32 SectorCount, Count;
+	UINT8 Status = 0;
+	UINT32 SectorCount = 0, Count = 0;
 
 	if (NULL == pPathName)	return DWIN_NULL_POINT;
 	AlphabetTransfrom(pPathName);
@@ -120,8 +183,20 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)
 	CH376CloseFile(0);
 	return Status;
 }
-
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag)
+/*****************************************************************************
+ 函 数 名  : CH376WriteFile
+ 功能描述  : 入文件、不存在则新建
+ 输入参数  : PUINT8 pPathName  文件绝对路径名
+             PUINT8 pBuf       缓冲区数据长度
+			 UINT8 Flag        写入标志位: 从文件头部写入/从文件尾部写入	 
+ 输出参数  : USB_INT_SUCCESS 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag)			/* 写入文件、不存在则新建 */
 {
 	UINT8 xdata Buf[BUF_SIZE];					/* 字符存储缓冲区 4096字节 = 8个扇区 */
 	UINT8 xdata EndBuf[DEF_SECTOR_SIZE];
@@ -197,6 +272,17 @@ UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize)
 	return DWIN_OK;
 }
 
+/*****************************************************************************
+ 函 数 名  : FindDWINFile
+ 功能描述  : 搜索DWIN升级文件
+ 输入参数  : PUINT8 MatchString  将返回 匹配文件的绝对路径	 
+ 输出参数  : DWIN_OK 成功
+ 			 其他 出错
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 UINT8 FindDWINFile(PUINT8 MatchString)
 {
 	FAT_NAME MatchLish[MATCH_LIST_SIZE];

@@ -16,8 +16,19 @@
 #include "dgus.h"
 
 void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
-
-void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)	/* 读DGUS Addr地址 Len长度数据 存入Buf */
+/*****************************************************************************
+ 函 数 名  : ReadDGUS
+ 功能描述  : 读DGUS寄存器
+ 输入参数  : UINT32 Addr  DGUS寄存器地址
+             PUINT8 pBuf  接收缓冲区
+			 UINT16 Len   读取数据字节长度	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 {
 	UINT8 Offset = 0;
 	UINT8 EndLen = 0;
@@ -59,8 +70,19 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)	/* 读DGUS Addr地址 Len长度数
 	}
 	RAMMODE = 0x00;	 
 }
-
-void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)	/* 写DGUS Buf数据 Addr地址 Len长度数据 */
+/*****************************************************************************
+ 函 数 名  : WriteDGUS
+ 功能描述  : 写DGUS寄存器
+ 输入参数  : UINT32 Addr  DGUS寄存器地址
+             PUINT8 pBuf  发送缓冲区
+			 UINT16 Len   发送数据字节长度	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 {
 	UINT8 Offset;
 	UINT8 EndLen;
@@ -109,7 +131,17 @@ void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)	/* 写DGUS Buf数据 Addr地址 
 	}
 	RAMMODE = 0x00;
 }
-
+/*****************************************************************************
+ 函 数 名  : SystemUpdate
+ 功能描述  : 系统升级
+ 输入参数  : UINT8 FileType  升级文件类型	 
+ 输出参数  : DWIN_OK 成功
+             其他    失败
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 UINT8 SystemUpdate(UINT8 FileType)
 {
 	UINT8 xdata Buf[BUF_SIZE + CONTROL_SIZE];

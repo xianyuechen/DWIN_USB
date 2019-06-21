@@ -76,7 +76,7 @@ int main()
 	//UART5_Sendbyte(FileDataBuf[1]);
 	//for(i = 0; i < Size; i++)
 	//	UART5_Sendbyte(FileDataBuf[i]);
-	res = CH376HostInit();
+	res = CH376USBInit();
 	//UART5_Sendbyte(res);
 	SystemUpdate(FILE_T5L51_BIN);
 	while(1);	
