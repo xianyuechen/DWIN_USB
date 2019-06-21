@@ -15,7 +15,10 @@
 ******************************************************************************/
 #include "dgus.h"
 
+/********************************对内函数声明*********************************/
+
 void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
+
 /*****************************************************************************
  函 数 名  : ReadDGUS
  功能描述  : 读DGUS寄存器
@@ -215,7 +218,21 @@ UINT8 SystemUpdate(UINT8 FileType)
 	SendString(Buf, BUF_SIZE + CONTROL_SIZE);
 	return DWIN_OK;
 }
-
+/*****************************************************************************
+ 函 数 名  : UpdateSet
+ 功能描述  : 更新控制子设置
+ 输入参数  : PUINT8 pBuf     控制字BUF缓冲区
+             UINT8 Flag_EN   升级使能标志位
+			 UINT8 UpSpace   升级空间
+			 UINT32 UpAddr   文件升级地址	
+			 UINT16 FileSize 升级文件大小 
+ 输出参数  : DWIN_OK 成功
+             其他    失败
+ 修改历史  :
+ 日    期  : 2019年6月21日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
 {
 	 *pBuf++ = Flag_EN;					/* 升级标志 */
