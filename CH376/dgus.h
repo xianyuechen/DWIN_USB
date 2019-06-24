@@ -15,43 +15,11 @@
 ******************************************************************************/
 #include "t5los8051.h"
 #include "system/sys.h"
-#include "app_interface.h"
-#include "system/uart.h" 
 #ifndef _DGUS_H_
 #define _DGUS_H_
 
 /********************************宏定义***************************************/
-/* 文件Flash地址计算 */
-#define ADDR_T5L51_BIN		(UINT32)(0x10000);							/* T5L51*.BIN 文件地址 */
-#define ADDR_DWIN_OS		(UINT32)(0x18000);							/* DWINOS* 文件地址 */
-#define LIB(x)				(UINT32)(0x30000 + (x * 4) << 10)			/* *.LIB 库文件地址 */
-#define WORD_LIB(x)			(UINT32)(0x001 << 20 + (0x100 * x) << 10)	/* XX*.BIN 字库文件地址 */
-#define BMP(x)				(UINT32)(0x040 << 20 + (0x080 * x) << 10)	/* XX*.BMP 图片文件地址 */
-/* 升级使能标记 */
-#define FLAG_EN				(0x5A)
-#define FLAG_NO_EN			(0x00)
-/* 升级空间 */
-#define SPACE_1				(0x00)
-#define SPACE_2				(0x01)
-#define SPACE_3				(0x02)
-#define SPACE_4				(0x03)
-/* 升级操作相关地址 */
-#define ADDR_UP_EN			(0x438)
-#define ADDR_UP_TIME		(0x439)
-#define ADDR_UP_SPANCE1		(0x43A)
-#define ADDR_UP_SPANCE2		(0x43E)
-#define ADDR_UP_SPANCE3		(0x442)
-#define ADDR_UP_SPANCE4		(0x446)
-#define ADDR_UP_SET			(0x44A)
-/* 升级包大小定义 控制+数据 = 521B + 4096B */
-#ifndef BUF_SIZE
-#define BUF_SIZE			(0x1000)
-#endif
-#ifndef CONTROL_SIZE
-#define CONTROL_SIZE		(0x200)
-#endif
 
-#define UPDATE_FAILED		(0xFF)
 
 /********************************对外函数声明*********************************/
 
@@ -60,5 +28,5 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len);
 /* 写DGUS Addr地址 Len数据字节长度 发送Buf */
 void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len);
 /* 系统升级 */	
-UINT8 SystemUpdate(UINT8 FileType);
+
 #endif

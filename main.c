@@ -29,7 +29,7 @@ UINT8 res = 0x00;
 UINT32 DiskFree;
 UINT32 NewSize;
 UINT32 PRINT_EN = 0;
-UINT8 xdata FileDataBuf[0x1000];
+//UINT8 xdata FileDataBuf[0x1000];
 UINT16 TIMES = 0;
 FAT_NAME MatchLish[DIR_FILE_MAX] = {0};
 int main()
@@ -40,45 +40,37 @@ int main()
 	UINT8 COUNT = 0;
 	UINT32 Addr = 0;
 	UINT32 Size = 0;
+	UINT8 xdata Buf[BUF_SIZE];
+	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[64];	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
+	for (i = 0; i < DIR_FILE_MAX; i++)
+		memset(MatchLish[i].NAME, 0, sizeof(MatchLish[i].NAME));
 	memset(filename, 0, sizeof(filename));
-	memset(FileDataBuf, 0, sizeof(FileDataBuf));	
-	strcpy(filename, "T5L51*");		 ///FILEEE.TXT
-	//strcpy(filename, "/FILEEE.TXT");
-	/*
-	res = CH376HostInit();
-	res = FindDWINFile(filename);
-	UART5_SendString(filename);
-	//EA = 1;
-	//res = CH376ReadFile(filename, FileDataBuf);
-	//UART5_SendString("end\n");
-	//UART5_Sendbyte(res);
-	//UART5_SendString(filename);
-	/*
-	if (0)
+	memset(Buf, 0, sizeof(Buf));
+	//memset(FileDataBuf, 0, sizeof(FileDataBuf));	
+	//strcpy(filename, "T5L51*");		 ///FILEEE.TXT
+	strcpy(filename, "T5L51*");
+	//ReadDGUS(0x1000, filename, 2);
+	//UART5_Sendbyte(filename[1]);
+	//UART5_Sendbyte(filename[1]);
+	//res = CH376USBInit();
+	//SystemUpdate(FILE_T5L51_BIN);
+	CH376USBInit();
+
+	/*CH376MatchFile("13*", "/DWIN_SET", MatchLish);
+	
+	for (i = 0; i < DIR_FILE_MAX; i++)
 	{
-		res = CH376WriteFile(filename, FileDataBuf, WRITE_FROM_END);
-		UART5_Sendbyte(res);	
-	}
-	else  res = CH376ReadFile(filename);
-	CH376CloseFile(1);
-	PRINT_EN = 1;*/
-	//memset(filename, 0, sizeof(filename));	
-	//WriteDGUS(0x0f, filename, 4);
-	//ReadDGUS(0x0f, filename, 2);
-	//for (i = 0; i < 2; i++) UART5_Sendbyte(filename[i]);
-	//Addr = 0x43A;
-	//Size = 8;
-	//ReadDGUS(Addr, FileDataBuf, Size);
-	//UART5_Sendbyte(FileDataBuf[1]);
-	//for(i = 0; i < Size; i++)
-	//	UART5_Sendbyte(FileDataBuf[i]);
-	res = CH376USBInit();
-	//UART5_Sendbyte(res);
-	SystemUpdate(FILE_T5L51_BIN);
+		UART5_SendString(MatchLish[i].NAME);
+		UART5_Sendbyte('\n');
+	}*/
+	FindDWINFile(filename, "BIN");
+	//UART5_SendString(filename);
+	CH376ReadFile(filename, Buf, &Buf_Size, 2);
+	//SendString(Buf, Buf_Size);
 	while(1);	
 	//res = CH376TouchDir(filename);			/* 创建目录 */
 	//res = CH376TouchNewFile(filename);		/* 创建文件 */

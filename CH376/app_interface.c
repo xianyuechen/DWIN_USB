@@ -14,9 +14,12 @@
 ÐÞ¸ÄÄÚÈÝ   : 	
 ******************************************************************************/
 #include "app_interface.h"
+#include "stdio.h"
 /********************************¶ÔÄÚº¯ÊýÉùÃ÷*********************************/
+
 UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize);
 void Delay(void);
+void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 
 /*****************************************************************************
  º¯ Êý Ãû  : Delay	Èí¼þÑÓÊ±Ô¼ 0.6ms
@@ -133,7 +136,7 @@ UINT8 CH376TouchDir(PUINT8 pPathName)
  ×÷    Õß  : chenxianyue
  ÐÞ¸ÄÄÚÈÝ  : ´´½¨
 *****************************************************************************/
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)	/* ¶ÁÈ¡ÎÄ¼þÐÅÏ¢ */	
+UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 SectorOffset)	/* ¶ÁÈ¡ÎÄ¼þÐÅÏ¢ */	
 {	/* ×Ö·û´æ´¢»º³åÇøpBuf 4096×Ö½Ú = 8¸öÉÈÇø */
 	UINT8 Status = 0;
 	UINT32 SectorCount = 0, Count = 0;
@@ -144,8 +147,8 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)	/* ¶ÁÈ¡ÎÄ¼
 	/* (1) ¼ì²âÎÄ¼þ´æÔÚÓë·ñ,»ñÈ¡ÎÄ¼þ³¤¶ÈºÍ¿É¶ÁÈ¡ÉÈÇøÊý */
 	Status = CH376FileOpenPath(pPathName);	
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-	CH376SecLocate(0);
-	*pFileSize = CH376GetFileSize();
+	CH376SecLocate(SectorOffset);
+	*pFileSize = CH376GetFileSize() - (SectorOffset << 9);
 	
 	if (*pFileSize == 0)	return DWIN_ERROR;		/* ¿ÕÎÄ¼þ */
 	if (*pFileSize % DEF_SECTOR_SIZE)				/* ÊÇ·ñ´æÔÚÎ²²¿ÁãÍ·Êý¾Ý ¸ù¾ÝÄÜ·ñÕû³ý512ÅÐ¶Ï */ 
@@ -157,31 +160,26 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize)	/* ¶ÁÈ¡ÎÄ¼
 		SectorCount = (*pFileSize >> 9);
 	}
 	/* (2) ÎÄ¼þÊý¾Ý¶ÁÈ¡ºÍ·¢ËÍ */
-	while(1)
+	if (SectorCount > BUF_SIZE / DEF_SECTOR_SIZE) 
 	{
-		if (SectorCount > BUF_SIZE / DEF_SECTOR_SIZE) 
-		{
-			Count = BUF_SIZE / DEF_SECTOR_SIZE;
-			SectorCount -= BUF_SIZE / DEF_SECTOR_SIZE;
-		}
-		else
-		{
-			Count = SectorCount;
-		}
-		Status = CH376SectorRead(pBuf, (UINT8)Count, NULL);
-		if (Status != USB_INT_SUCCESS) break;
-		/*	
-		if (*pFileSize > BUF_SIZE)
-		{
-			 Status = SenderBuf(pBuf, FILE_T5L51_BIN, BUF_SIZE);
-			 *pFileSize -= BUF_SIZE;
-		}
-		else Status = SenderBuf(pBuf, FILE_T5L51_BIN, *pFileSize); */
-		if (Count == SectorCount) break;		/* ¶ÁÈ¡Íê±Ï */ 
-		
+		Count = BUF_SIZE / DEF_SECTOR_SIZE;
 	}
+	else
+	{
+		Count = SectorCount;
+	}
+	Status = CH376SectorRead(pBuf, (UINT8)Count, NULL);
+	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+			
+	if (*pFileSize > BUF_SIZE)
+	{
+		Status = SenderBuf(pBuf, FILE_T5L51_BIN, BUF_SIZE);
+		*pFileSize -= BUF_SIZE;
+	}
+	else Status = SenderBuf(pBuf, FILE_T5L51_BIN, *pFileSize);
+	
 	CH376CloseFile(0);
-	return Status;
+	return DWIN_OK;
 }
 /*****************************************************************************
  º¯ Êý Ãû  : CH376WriteFile
@@ -275,7 +273,8 @@ UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize)
 /*****************************************************************************
  º¯ Êý Ãû  : FindDWINFile
  ¹¦ÄÜÃèÊö  : ËÑË÷DWINÉý¼¶ÎÄ¼þ
- ÊäÈë²ÎÊý  : PUINT8 MatchString  ½«·µ»Ø Æ¥ÅäÎÄ¼þµÄ¾ø¶ÔÂ·¾¶	 
+ ÊäÈë²ÎÊý  : PUINT8 MatchString  ½«·µ»Ø Æ¥ÅäÎÄ¼þµÄ¾ø¶ÔÂ·¾¶
+             PUINT8 pFileSuffix  ½«·µ»Ø Æ¥ÅäÎÄ¼þµÄºó×º	 
  Êä³ö²ÎÊý  : DWIN_OK ³É¹¦
  			 ÆäËû ³ö´í
  ÐÞ¸ÄÀúÊ·  :
@@ -283,29 +282,170 @@ UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize)
  ×÷    Õß  : chenxianyue
  ÐÞ¸ÄÄÚÈÝ  : ´´½¨
 *****************************************************************************/
-UINT8 FindDWINFile(PUINT8 MatchString)
+UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix)
 {
-	FAT_NAME MatchLish[MATCH_LIST_SIZE];
+	FAT_NAME xdata MatchLish[MATCH_LIST_SIZE];
 	UINT8 Status = 0, i = 0;
 	UINT16 NameLen = 0;
-	Status = CH376MatchFile(MatchString, DWIN_DIR, MatchLish);	
+	if (strlen(pFileSuffix) != 3) return DWIN_ERROR;				/* ¼ì²âºó×ºÃûÊÇ·ñºÏ·¨ */
+	Status = CH376MatchFile(pMatchString, DWIN_DIR, MatchLish);	
 	for (i = 0; i < 10; i++)
 	{
 		NameLen = strlen(MatchLish[i].NAME);
-		if ((MatchLish[i].NAME[NameLen - 3]  == 'B') &&
-			(MatchLish[i].NAME[NameLen - 2] == 'I') &&
-			(MatchLish[i].NAME[NameLen - 1] == 'N') &&
+		if ((MatchLish[i].NAME[NameLen - 3] == *pFileSuffix++) &&	/* ºó×ºÆ¥ÅäÇÒ·ÇÎÄ¼þÄ¿Â¼ */
+			(MatchLish[i].NAME[NameLen - 2] == *pFileSuffix++) &&
+			(MatchLish[i].NAME[NameLen - 1] == *pFileSuffix)   &&
 			(MatchLish[i].Attr != ATTR_VOLUME_ID) &&
 			(MatchLish[i].Attr != ATTR_DIRECTORY))
 		{
-			memset(MatchString, 0, strlen(MatchString));
-			strcpy(MatchString, DWIN_DIR);
-			strcat(MatchString, "/");
-			strcat(MatchString, MatchLish[i].NAME);		/* °ÑÕÒµ½µÄ¾ø¶ÔÂ·¾¶Ð´ÈëMatchString */
+			memset(pMatchString, 0, strlen(pMatchString));
+			strcpy(pMatchString, DWIN_DIR);
+			strcat(pMatchString, "/");
+			strcat(pMatchString, MatchLish[i].NAME);				/* °ÑÕÒµ½µÄ¾ø¶ÔÂ·¾¶Ð´ÈëMatchString */
 			return DWIN_OK;
 		}
 	}
 	return DWIN_ERROR;
+}
+/*****************************************************************************
+ º¯ Êý Ãû  : SystemUpdate
+ ¹¦ÄÜÃèÊö  : ÏµÍ³Éý¼¶
+ ÊäÈë²ÎÊý  : UINT8 FileType    Éý¼¶ÎÄ¼þÀàÐÍ
+             UINT16 FileNumber Éý¼¶ÎÄ¼þµÄ±àºÅ	 
+ Êä³ö²ÎÊý  : DWIN_OK ³É¹¦
+             ÆäËû    Ê§°Ü
+ ÐÞ¸ÄÀúÊ·  :
+ ÈÕ    ÆÚ  : 2019Äê6ÔÂ21ÈÕ
+ ×÷    Õß  : chenxianyue
+ ÐÞ¸ÄÄÚÈÝ  : ´´½¨
+*****************************************************************************/
+UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
+{
+	UINT8 xdata Buf[BUF_SIZE + CONTROL_SIZE];
+	UINT8 xdata FileName[22];	/* /DWIN_SET/ + ³¤¶È 8 + '.' + 3 */
+	UINT8 xdata Suffix[SUFFIX_SIZE];
+	UINT8 Status = 0;
+	UINT8 UpSpace = 0;
+	PUINT8 pBufFile = Buf;
+	UINT32 FileAddr = 0;
+	UINT32 AddrBuff = 0;
+	UINT32 FileSize = 0;
+	UINT32 SectorOffset = 0;	
+	memset(Buf, 0, sizeof(Buf));
+	memset(FileName, 0, sizeof(FileName));
+	memset(Suffix, 0, SUFFIX_SIZE);
+	/* (1) ¸ù¾ÝÎÄ¼þÀàÐÍ Éè¶¨Ïà¹Ø²ÎÊý */
+	switch (FileType)
+	{
+		case FILE_T5L51_BIN:
+		{
+			strcpy(FileName, "T5L51*");
+			strcpy(Suffix, "BIN");
+			FileAddr = ADDR_T5L51_BIN;
+			UpSpace = SPACE_1;
+			break;
+		}
+
+		case FILE_DWINOS_BIN:
+		{
+			strcpy(FileName, "DWINOS*");
+			strcpy(Suffix, "BIN");
+			FileAddr = ADDR_DWIN_OS;
+			UpSpace = SPACE_1;
+			break;
+		}
+
+		case FILE_XXX_LIB:
+		{
+			sprintf(FileName, "%d*", FileNumber);
+			strcpy(Suffix, "LIB");
+			FileAddr = LIB(FileNumber);
+			UpSpace = SPACE_1;
+			break;
+		}
+		case FILE_XXX_BIN:
+		{
+			sprintf(FileName, "%d*", FileNumber);
+			strcpy(Suffix, "BIN");
+			FileAddr = FONT(FileNumber);
+			UpSpace = SPACE_2;
+			break;
+		}
+		case FILE_XXX_ICL:
+		{
+			sprintf(FileName, "%d*", FileNumber);
+			strcpy(Suffix, "ICL");
+			FileAddr = ICL(FileNumber);
+			UpSpace = SPACE_2;
+			break;
+		}
+		default:
+			return DWIN_ERROR;
+	}
+	/* (2) ²éÕÒÎÄ¼þ ´æÔÚÔò¶ÁÈ¡ÎÄ¼þÐÅÏ¢µ½ºó4K»º³åÇø */
+	Status = FindDWINFile(FileName, Suffix);/* ²éÕÒÄ¿±êÎÄ¼þÃû */
+	if (Status != DWIN_OK) return Status;
+	pBufFile += CONTROL_SIZE;				/* ÇÐ»»µ½Êý¾Ý±£´æÇøÓò */
+	Status = CH376ReadFile(FileName, pBufFile, &FileSize, 0);
+	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+	if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
+	/* (3) ÉèÖÃÇ°512×Ö½Ú¿ØÖÆ×ÖÐÅÏ¢ */
+	ReadDGUS(ADDR_UP_CONFIG, Buf, 4);			
+	AddrBuff = (Buf[3] << 8) & 0xFF00;		/* »ñÈ¡Éý¼¶DGUSµØÖ· µÍ8bitÊÇ0x00 */
+	ReadDGUS(AddrBuff, Buf, 1);
+	if (Buf[0] == FLAG_NO_EN) 
+	{										/* ÉèÖÃ¸üÐÂ²ÎÊý */
+		UpdateSet(Buf, FLAG_NO_EN, UpSpace, FileAddr, (UINT16)FileSize);
+	}
+	else return DWIN_ERROR;										
+	WriteDGUS(AddrBuff, Buf, (UINT16)FileSize + CONTROL_SIZE);	/* Ê×´ÎÐ´Èë²»Æô¶¯Éý¼¶ ·ÀÖ¹Éý¼¶³ö´í */
+	AddrBuff += CONTROL_SIZE / 2;			/* ÒÆ¶¯µØÖ·Ö¸Õëµ½Ð´Èë¿ØÖÆ×ÖµÄÎ²²¿ */
+	while (FileSize == BUF_SIZE)				/* ÎÄ¼þ»¹Î´¶ÁÈ¡Íê±Ï */
+	{
+		AddrBuff += BUF_SIZE / 2;			/* µØÖ·Æ«ÒÆ:ÒÆ¶¯µØÖ·Ö¸Õëµ½Ð´ÈëÊý¾ÝµÄÎ²²¿ */
+		SectorOffset += 8;					/* ÉÈÇøÆ«ÒÆ:Ò»´ÎÆ«ÒÆ8¸öÉÈÇø(512B) 4096B */
+		Status = CH376ReadFile(FileName, pBufFile, &FileSize, SectorOffset);
+		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+		if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
+		WriteDGUS(AddrBuff, pBufFile, (UINT16)FileSize);
+	}	
+	ReadDGUS(AddrBuff, Buf, 1);
+	/* (4) Ê×Î»Ð´ÈëÉý¼¶±êÖ¾ ¿ªÆôÉý¼¶ */
+	if (Buf[0] == FLAG_NO_EN)
+	{
+		Buf[0] = FLAG_EN;					/* Æô¶¯Éý¼¶ */
+		WriteDGUS(AddrBuff, Buf, 4);
+	}
+	//SendString(Buf, BUF_SIZE + CONTROL_SIZE);
+	return DWIN_OK;
+}
+/*****************************************************************************
+ º¯ Êý Ãû  : UpdateSet
+ ¹¦ÄÜÃèÊö  : ¸üÐÂ¿ØÖÆ×ÓÉèÖÃ
+ ÊäÈë²ÎÊý  : PUINT8 pBuf     ¿ØÖÆ×ÖBUF»º³åÇø
+             UINT8 Flag_EN   Éý¼¶Ê¹ÄÜ±êÖ¾Î»
+			 UINT8 UpSpace   Éý¼¶¿Õ¼ä
+			 UINT32 UpAddr   ÎÄ¼þÉý¼¶µØÖ·	
+			 UINT16 FileSize Éý¼¶ÎÄ¼þ´óÐ¡ 
+ Êä³ö²ÎÊý  : DWIN_OK ³É¹¦
+             ÆäËû    Ê§°Ü
+ ÐÞ¸ÄÀúÊ·  :
+ ÈÕ    ÆÚ  : 2019Äê6ÔÂ21ÈÕ
+ ×÷    Õß  : chenxianyue
+ ÐÞ¸ÄÄÚÈÝ  : ´´½¨
+*****************************************************************************/
+void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
+{
+	 *pBuf++ = Flag_EN;					/* Éý¼¶±êÖ¾ */
+	 *pBuf++ = UpSpace;					/* Éý¼¶¿Õ¼äÑ¡Ôñ */
+	 *pBuf++ = (UINT8)(UpAddr >> 24);	/* Ô¶³ÌÉý¼¶Ä¿±êµØÖ· */
+	 *pBuf++ = (UINT8)(UpAddr >> 16);
+	 *pBuf++ = (UINT8)(UpAddr >> 8);
+	 *pBuf++ = (UINT8)(UpAddr);
+	 *pBuf++ = (UINT8)(FileSize >> 8);	/* Êý¾Ý×Ö½Ú³¤¶È 0x0001 - 0x0FFF */
+	 *pBuf++ = (UINT8)(FileSize); 		
+	 *pBuf++ = 0x00;					/* Ä¬ÈÏ²»½øÐÐCRCÐ£Ñé */
+	 *pBuf++ = 0x00;
 }
 
 

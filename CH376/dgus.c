@@ -14,10 +14,8 @@
 修改内容   : 	
 ******************************************************************************/
 #include "dgus.h"
-
+#include "stdio.h"
 /********************************对内函数声明*********************************/
-
-void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 
 /*****************************************************************************
  函 数 名  : ReadDGUS
@@ -133,116 +131,4 @@ void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 		while (!APP_EN);
 	}
 	RAMMODE = 0x00;
-}
-/*****************************************************************************
- 函 数 名  : SystemUpdate
- 功能描述  : 系统升级
- 输入参数  : UINT8 FileType  升级文件类型	 
- 输出参数  : DWIN_OK 成功
-             其他    失败
- 修改历史  :
- 日    期  : 2019年6月21日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-UINT8 SystemUpdate(UINT8 FileType)
-{
-	UINT8 xdata Buf[BUF_SIZE + CONTROL_SIZE];
-	UINT8 xdata FileName[20];	/* 长度 8 + '.' + 3 */
-	UINT8 Status = 0;
-	UINT8 UpSpace = 0;
-	PUINT8 pBufFile = Buf;
-	UINT32 FileAddr = 0;
-	UINT32 AddrBuff = 0;
-	UINT32 FileSize = 0;	
-	memset(Buf, 0, sizeof(Buf));
-	memset(FileName, 0, sizeof(FileName));
-	/* (1) 根据文件类型 设定相关参数 */
-	switch (FileType)
-	{
-		case FILE_T5L51_BIN:
-		{
-			strcpy(FileName, "T5L51*");
-			FileAddr = ADDR_T5L51_BIN;
-			UpSpace = SPACE_1;
-			break;
-		}
-
-		case FILE_DWINOS_BIN:
-		{
-			strcpy(FileName, "DWINOS*");
-			FileAddr = ADDR_DWIN_OS;
-			UpSpace = SPACE_1;
-			break;
-		}
-
-		case FILE_XXX_LIB:
-		{
-			UpSpace = SPACE_1;
-			break;
-		}
-		case FILE_ALL:
-		{
-			//SystemUpdate(FILE_T5L51_BIN);
-			//SystemUpdate(FILE_DWINOS_BIN);
-			//SystemUpdate(FILE_XXX_LIB);
-			break;
-		}
-		default:
-			return UPDATE_FAILED;
-	}
-	/* (2) 查找文件 存在则读取文件信息到后4K缓冲区 */
-	Status = FindDWINFile(FileName);	/* 查找目标文件名 */
-	if (Status != DWIN_OK) return Status;
-	pBufFile += CONTROL_SIZE;			/* 切换到数据保存区域 */
-	Status = CH376ReadFile(FileName, pBufFile, &FileSize);
-	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-	/* (3) 设置前512字节控制字信息 */
-	ReadDGUS(ADDR_UP_SET, Buf, 4);			
-	AddrBuff = (Buf[3] << 8) & 0xFF00;	/* 获取升级DGUS地址 */
-	ReadDGUS(AddrBuff, Buf, 1);
-	if (Buf[0] == FLAG_NO_EN) 
-	{									/* 设置更新参数 */
-		UpdateSet(Buf, FLAG_NO_EN, SPACE_1, FileAddr, (UINT16)FileSize);
-	}
-	else return DWIN_ERROR;
-										/* 首次写入不启动升级 防止升级出错 */
-	WriteDGUS(AddrBuff, Buf, (UINT16)FileSize + CONTROL_SIZE);	
-	ReadDGUS(AddrBuff, Buf, 1);
-	/* (4) 首位写入升级标志 开启升级 */
-	if (Buf[0] == FLAG_NO_EN)
-	{
-		Buf[0] = FLAG_EN;				/* 启动升级 */
-		WriteDGUS(AddrBuff, Buf, 4);
-	}
-	SendString(Buf, BUF_SIZE + CONTROL_SIZE);
-	return DWIN_OK;
-}
-/*****************************************************************************
- 函 数 名  : UpdateSet
- 功能描述  : 更新控制子设置
- 输入参数  : PUINT8 pBuf     控制字BUF缓冲区
-             UINT8 Flag_EN   升级使能标志位
-			 UINT8 UpSpace   升级空间
-			 UINT32 UpAddr   文件升级地址	
-			 UINT16 FileSize 升级文件大小 
- 输出参数  : DWIN_OK 成功
-             其他    失败
- 修改历史  :
- 日    期  : 2019年6月21日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
-{
-	 *pBuf++ = Flag_EN;					/* 升级标志 */
-	 *pBuf++ = UpSpace;					/* 升级空间选择 */
-	 *pBuf++ = (UINT8)(UpAddr >> 24);	/* 远程升级目标地址 */
-	 *pBuf++ = (UINT8)(UpAddr >> 16);
-	 *pBuf++ = (UINT8)(UpAddr >> 8);
-	 *pBuf++ = (UINT8)(UpAddr);
-	 *pBuf++ = (UINT8)(FileSize >> 8);	/* 数据字节长度 0x0001 - 0x0FFF */
-	 *pBuf++ = (UINT8)(FileSize); 		
-	 *pBuf++ = 0x00;					/* 默认不进行CRC校验 */
-	 *pBuf++ = 0x00;
 }
