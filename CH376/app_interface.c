@@ -447,12 +447,3 @@ void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 
 	 *pBuf++ = 0x00;					/* 默认不进行CRC校验 */
 	 *pBuf++ = 0x00;
 }
-
-
-
-
-
-
-
-
-

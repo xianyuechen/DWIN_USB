@@ -35,6 +35,7 @@ FAT_NAME MatchLish[DIR_FILE_MAX] = {0};
 int main()
 {
 	
+	FAT_DIR_INFO xdata Dir;
 	UINT8 j = 0;
 	UINT32 i = 0;
 	UINT8 COUNT = 0;
@@ -50,16 +51,21 @@ int main()
 		memset(MatchLish[i].NAME, 0, sizeof(MatchLish[i].NAME));
 	memset(filename, 0, sizeof(filename));
 	memset(Buf, 0, sizeof(Buf));
+	memset(&Dir, 0, sizeof(FAT_DIR_INFO));
 	//memset(FileDataBuf, 0, sizeof(FileDataBuf));	
 	//strcpy(filename, "T5L51*");		 ///FILEEE.TXT
-	strcpy(filename, "T5L51*");
+	strcpy(filename, "/DWIN_SET/T5L51.BIN");
 	//ReadDGUS(0x1000, filename, 2);
 	//UART5_Sendbyte(filename[1]);
 	//UART5_Sendbyte(filename[1]);
 	//res = CH376USBInit();
 	//SystemUpdate(FILE_T5L51_BIN);
 	CH376USBInit();
-
+	GetFileMessage(filename, &Dir);
+	UART5_Sendbyte((UINT8)(Dir.DIR_FileSize >> 24));
+	UART5_Sendbyte((UINT8)(Dir.DIR_FileSize >> 16));
+	UART5_Sendbyte((UINT8)(Dir.DIR_FileSize >> 8));
+	UART5_Sendbyte((UINT8)(Dir.DIR_FileSize));
 	/*CH376MatchFile("13*", "/DWIN_SET", MatchLish);
 	
 	for (i = 0; i < DIR_FILE_MAX; i++)
@@ -67,9 +73,9 @@ int main()
 		UART5_SendString(MatchLish[i].NAME);
 		UART5_Sendbyte('\n');
 	}*/
-	FindDWINFile(filename, "BIN");
-	//UART5_SendString(filename);
-	CH376ReadFile(filename, Buf, &Buf_Size, 2);
+
+	//FindDWINFile(filename, "BIN");
+	//CH376ReadFile(filename, Buf, &Buf_Size, 2);
 	//SendString(Buf, Buf_Size);
 	while(1);	
 	//res = CH376TouchDir(filename);			/* ´´½¨Ä¿Â¼ */

@@ -494,7 +494,7 @@ UINT8 CH376DiskCapacity(PUINT32 DiskCap)  /* 查询磁盘物理容量,扇区数 */
 UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹配文件 */
 {
 	UINT8 s, FileCount, i;
-	UINT8 pBuf[64];
+	UINT8 xdata pBuf[64];
 	PUINT8 pNameBuf;
 	P_FAT_DIR_INFO pDir;
 	if (NULL == String) return (DWIN_NULL_POINT);
@@ -533,4 +533,31 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹
 	}
 	if (DIR_FILE_MAX == FileCount)  CH376EndDirInfo();
 	return s;
+}
+
+UINT8 GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
+{
+	UINT8 xdata Buf[64];
+	UINT8 xdata PathName[64];
+	UINT8 Status = 0;
+	UINT8 i = 0;
+	P_FAT_DIR_INFO pFile;
+	memset(Buf, 0, sizeof(Buf));
+	memset(PathName, 0, sizeof(PathName));
+	Status = CH376FileOpenPath(pFilePath);
+	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);
+	xWriteCH376Data(0xFF);
+	Status = Wait376Interrupt();
+	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+	CH376ReadBlock(Buf);
+	pFile = (P_FAT_DIR_INFO)Buf;
+	pDir -> DIR_Attr =  pFile -> DIR_Attr;
+	pDir -> DIR_CrtTime =  pFile -> DIR_CrtTime;
+	pDir -> DIR_CrtDate =  pFile -> DIR_CrtDate;
+	pDir -> DIR_LstAccDate =  pFile -> DIR_LstAccDate;
+	pDir -> DIR_WrtTime =  pFile -> DIR_WrtTime;
+	pDir -> DIR_WrtDate =  pFile -> DIR_WrtDate;
+	pDir -> DIR_FileSize =  pFile -> DIR_FileSize;
+	return DWIN_OK;
 }
