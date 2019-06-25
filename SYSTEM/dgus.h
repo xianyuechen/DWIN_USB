@@ -14,7 +14,7 @@
 ÐÞ¸ÄÄÚÈÝ   : 	
 ******************************************************************************/
 #include "t5los8051.h"
-#include "system/sys.h"
+#include "sys.h"
 #ifndef _DGUS_H_
 #define _DGUS_H_
 

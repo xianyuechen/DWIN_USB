@@ -18,7 +18,7 @@
 #include "file_sys.h"
 #include "string.h"
 #include "system/uart.h"
-#include "ch376/dgus.h"
+#include "system/dgus.h"
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 
