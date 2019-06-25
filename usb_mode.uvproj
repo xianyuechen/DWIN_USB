@@ -384,7 +384,7 @@
             <File>
               <FileName>dgus.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\CH376\dgus.c</FilePath>
+              <FilePath>.\SYSTEM\dgus.c</FilePath>
             </File>
           </Files>
         </Group>
