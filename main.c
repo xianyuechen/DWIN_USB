@@ -60,23 +60,7 @@ int main()
 	//UART5_Sendbyte(filename[1]);
 	//res = CH376USBInit();
 	//SystemUpdate(FILE_T5L51_BIN);
-	Dir.DIR_Attr = 0x21;
 	CH376USBInit();
-	//CH376ReadFile(filename, Buf, &Buf_Size, 0);
-	//UART5_Sendbyte(SetFileMessage(filename, &Dir));
-	GetFileMessage(filename, &Dir);
-	//UART5_Sendbyte((UINT8)(Dir.DIR_FileSize >> 24));
-	//UART5_Sendbyte((UINT8)(Dir.DIR_FileSize >> 16));
-	UART5_Sendbyte((UINT8)(Dir.DIR_CrtDate >> 8));
-	UART5_Sendbyte((UINT8)(Dir.DIR_CrtDate));
-	/*CH376MatchFile("13*", "/DWIN_SET", MatchLish);
-	
-	for (i = 0; i < DIR_FILE_MAX; i++)
-	{
-		UART5_SendString(MatchLish[i].NAME);
-		UART5_Sendbyte('\n');
-	}*/
-
 	//FindDWINFile(filename, "BIN");
 	//CH376ReadFile(filename, Buf, &Buf_Size, 2);
 	//SendString(Buf, Buf_Size);

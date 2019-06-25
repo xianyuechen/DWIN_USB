@@ -55,7 +55,7 @@ UINT8 Wait376Interrupt(void)
 	UINT32 i = 0;
 	while (Query376Interrupt() == FALSE)
 	{
-		if(i++ == 0xFFFF0) break;
+		if(i++ == 0xFFFFF) break;
 	}	/* 一直等中断 */
 	return (CH376GetIntStatus());			/* 检测到中断 */	
 }
