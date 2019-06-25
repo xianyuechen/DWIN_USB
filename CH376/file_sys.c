@@ -52,7 +52,11 @@ void AlphabetTransfrom(PUINT8 name)			/* 小写文件名统一转换为大写文件名 */
 
 UINT8 Wait376Interrupt(void)
 {
-	while (Query376Interrupt() == FALSE);	/* 一直等中断 */
+	UINT32 i = 0;
+	while (Query376Interrupt() == FALSE)
+	{
+		if(i++ == 0xFFFF0) break;
+	}	/* 一直等中断 */
 	return (CH376GetIntStatus());			/* 检测到中断 */	
 }
 
@@ -538,26 +542,99 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹
 UINT8 GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 {
 	UINT8 xdata Buf[64];
-	UINT8 xdata PathName[64];
 	UINT8 Status = 0;
-	UINT8 i = 0;
 	P_FAT_DIR_INFO pFile;
 	memset(Buf, 0, sizeof(Buf));
-	memset(PathName, 0, sizeof(PathName));
+	
+	Status = CH376FileOpenPath(pFilePath);
+	UART5_Sendbyte(Status);	
+	if (Status != USB_INT_SUCCESS) 
+	{
+		CH376CloseFile(0);
+		return DWIN_ERROR;
+	}
+	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);	
+	Status = Wait376Interrupt();
+	UART5_Sendbyte(Status);	
+	if (Status != USB_INT_SUCCESS)
+	{
+		CH376CloseFile(0);
+		return DWIN_ERROR;
+	}
+	CH376ReadBlock(Buf);
+	pFile = (P_FAT_DIR_INFO)Buf;
+	/* 数据存放小端对齐 改为大端对齐和DGUS对应 */
+	pDir -> DIR_Attr 		=	(pFile -> DIR_Attr) ;
+	pDir -> DIR_CrtTime 	=	(pFile -> DIR_CrtTime << 8) | (pFile -> DIR_CrtTime >> 8);
+	pDir -> DIR_CrtDate 	=	(pFile -> DIR_CrtDate << 8) | (pFile -> DIR_CrtDate >> 8);
+	pDir -> DIR_LstAccDate	=	(pFile -> DIR_LstAccDate << 8) | (pFile -> DIR_LstAccDate >> 8);
+	pDir -> DIR_WrtTime 	=	(pFile -> DIR_WrtTime << 8) | (pFile -> DIR_WrtTime >> 8);
+	pDir -> DIR_WrtDate 	=	(pFile -> DIR_WrtDate << 8) | (pFile -> DIR_WrtDate >> 8);
+	pDir -> DIR_FileSize 	= 	(pFile -> DIR_FileSize >> 24) | ((pFile -> DIR_FileSize >> 8) & 0xFF00) |
+								((pFile -> DIR_FileSize << 8) & 0xFF0000) | ((pFile -> DIR_FileSize << 24) & 0xFF000000);
+	CH376CloseFile(0);
+	return DWIN_OK;
+}
+
+UINT8 SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
+{
+	UINT8 xdata Buf[64];
+	UINT8 Status = 0;
+	P_FAT_DIR_INFO pFile;
+	memset(Buf, 0, sizeof(Buf));
+	pFile = (P_FAT_DIR_INFO)Buf;
 	Status = CH376FileOpenPath(pFilePath);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);
 	xWriteCH376Data(0xFF);
 	Status = Wait376Interrupt();
+	xWriteCH376Cmd(CMD20_WR_OFS_DATA);	/* 发送向CH376内部缓冲区写入数据命令 */
+	/* 1、将修改信息发送到BUF缓冲区 */
+	/* 2、发送偏移地址 */
+	/* 3、写入后续数据长度 */
+	/* 4、先写入低8位数据 再写入高8位数据 */
+	if (pDir -> DIR_Attr != 0)
+	{
+		pFile -> DIR_Attr =  pDir -> DIR_Attr;
+		xWriteCH376Data(0x0B);
+		xWriteCH376Data(1);
+		xWriteCH376Data(pFile -> DIR_Attr);
+	}
+	if (pDir -> DIR_CrtTime != 0)
+	{
+		pFile -> DIR_CrtTime =  pDir -> DIR_CrtTime;
+		xWriteCH376Data(0x0E);
+		xWriteCH376Data(2);
+		xWriteCH376Data(pFile -> DIR_CrtDate);
+		xWriteCH376Data(pFile -> DIR_CrtDate >> 8);
+	}
+	if (pDir -> DIR_CrtDate != 0)
+	{
+		pFile -> DIR_CrtDate =  pDir -> DIR_CrtDate;
+		xWriteCH376Data(0x10);
+		xWriteCH376Data(2);
+		xWriteCH376Data(pFile -> DIR_CrtDate);
+		xWriteCH376Data(pFile -> DIR_CrtDate >> 8);
+	}
+	if (pDir -> DIR_WrtTime != 0)
+	{
+		pFile -> DIR_WrtTime =  pDir -> DIR_WrtTime;
+		xWriteCH376Data(0x16);
+		xWriteCH376Data(2);
+		xWriteCH376Data(pFile -> DIR_WrtTime);
+		xWriteCH376Data(pFile -> DIR_WrtTime >> 8);
+	}
+	if (pDir -> DIR_WrtDate != 0)
+	{
+		pFile -> DIR_WrtDate =  pDir -> DIR_WrtDate;
+		xWriteCH376Data(0x18);
+		xWriteCH376Data(2);
+		xWriteCH376Data(pFile -> DIR_WrtDate);
+		xWriteCH376Data(pFile -> DIR_WrtDate >> 8);
+	}
+	xWriteCH376Cmd(CMD0H_DIR_INFO_SAVE);	/* 发送保存文件目录信息命令 */
+	Status = Wait376Interrupt();
+	CH376CloseFile(0);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-	CH376ReadBlock(Buf);
-	pFile = (P_FAT_DIR_INFO)Buf;
-	pDir -> DIR_Attr =  pFile -> DIR_Attr;
-	pDir -> DIR_CrtTime =  pFile -> DIR_CrtTime;
-	pDir -> DIR_CrtDate =  pFile -> DIR_CrtDate;
-	pDir -> DIR_LstAccDate =  pFile -> DIR_LstAccDate;
-	pDir -> DIR_WrtTime =  pFile -> DIR_WrtTime;
-	pDir -> DIR_WrtDate =  pFile -> DIR_WrtDate;
-	pDir -> DIR_FileSize =  pFile -> DIR_FileSize;
-	return DWIN_OK;
+	return DWIN_OK;	
 }

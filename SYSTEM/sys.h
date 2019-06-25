@@ -63,7 +63,6 @@ typedef unsigned char volatile	*PUINT8V;
 
 /********************************对外函数声明*********************************/
 
-/* 寄存器配置初始化 */
-void INIT_CPU(void);
+void INIT_CPU(void);	/* 寄存器配置初始化 */
 
 #endif

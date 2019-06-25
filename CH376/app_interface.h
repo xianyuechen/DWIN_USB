@@ -75,21 +75,13 @@
 #endif
 /********************************对外函数声明*********************************/
 
-/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
-UINT8 CH376USBInit(void);
-/* 创建新文件 */
-UINT8 CH376TouchNewFile(PUINT8 pPathName);
-/* 创建工作目录 */
-UINT8 CH376TouchDir(PUINT8 pPathName);
-/* 删除文件或者目录 */
-UINT8 CH376RmFile(PUINT8 pPathName);
-/* 读取文件信息 */
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 SectorOffset);
-/* 写入文件、不存在则新建 */
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag);
-/* 搜索DWIN升级文件 */
-UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix);
-/* 系统升级 */
-UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);
+UINT8 CH376USBInit(void);					/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
+UINT8 CH376TouchNewFile(PUINT8 pPathName);	/* 创建新文件 */
+UINT8 CH376TouchDir(PUINT8 pPathName);		/* 创建工作目录 */
+UINT8 CH376RmFile(PUINT8 pPathName);		/* 删除文件或者目录 */
+UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 SectorOffset);	/* 读取文件信息 */
+UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag);	/* 写入文件、不存在则新建 */
+UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix);		/* 搜索DWIN升级文件 */
+UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
 
 #endif

@@ -21,15 +21,10 @@
 	
 /********************************对外函数声明*********************************/
 
-/* 初始化并口IO */
-void CH376_PORT_INIT(void);
-/* 从CH376读状态 */
-UINT8 xReadCH376Status(void);
-/* 向CH376写命令 */		
-void xWriteCH376Cmd(UINT8 mCmd);
-/* 向CH376写数据 */  	
-void xWriteCH376Data(UINT8 mData);
-/* 从CH376读数据 */	
-UINT8 xReadCH376Data(void);
+void CH376_PORT_INIT(void);			/* 初始化并口IO */
+UINT8 xReadCH376Status(void);		/* 从CH376读状态 */	
+void xWriteCH376Cmd(UINT8 mCmd);	/* 向CH376写命令 */		
+void xWriteCH376Data(UINT8 mData);	/* 向CH376写数据 */ 
+UINT8 xReadCH376Data(void);			/* 从CH376读数据 */	
 
 #endif
