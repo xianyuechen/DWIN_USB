@@ -20,7 +20,7 @@
 #include "ch376/ch376.h"
 #include "ch376/para_port.h"
 #include "ch376/file_sys.h"
-#include "ch376/dgus.h"
+#include "system/dgus.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -53,8 +53,8 @@ int main()
 	memset(Buf, 0, sizeof(Buf));
 	//memset(FileDataBuf, 0, sizeof(FileDataBuf));	
 	//strcpy(filename, "T5L51*");		 ///FILEEE.TXT
-	strcpy(filename, "/DWIN_SET/XXX.BIN");
-	strcpy(filename2, "XXASFAJJAHAFA.C");
+	strcpy(filename, "/DWIN_SET/SSS.BIN");
+	strcpy(filename2, "XXXXXXXXXXXX.C");
 	for ( j = 0; filename2[j] != 0; j++ ) {  /* 复制并转换长文件名到LongNameBuf长文件名缓冲区 */
 			Buf[j*2] = filename2[j];  /* 将英文字符转换为两字节的小端UNICODE编码 */
 			Buf[j*2+1] = 0x00;
