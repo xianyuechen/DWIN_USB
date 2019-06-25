@@ -121,7 +121,7 @@ UINT8 CH376RmFile(PUINT8 pPathName)
 UINT8 CH376TouchDir(PUINT8 pPathName)
 {
 	AlphabetTransfrom(pPathName);
-	return (CH376DirCreate(pPathName));	
+	return (CH376FileOrDirCreate(pPathName));
 }
 /*****************************************************************************
  º¯ Êý Ãû  : CH376ReadFile
