@@ -605,7 +605,7 @@ typedef struct _FAT_DIR_INFO {
 
 #define LONE_NAME_MAX_CHAR		(255*2)		/* 长文件名最多字符数/字节数 */
 #define LONG_NAME_PER_DIR		(13*2)		/* 长文件名在每个文件目录信息结构中的字符数/字节数 */
-
+#define	LONG_NAME_BUF_LEN		(LONG_NAME_PER_DIR * 20)
 #endif
 
 /* ********************************************************************************************************************* */

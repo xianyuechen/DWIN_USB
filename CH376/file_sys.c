@@ -15,7 +15,7 @@
 ******************************************************************************/
 #include "file_sys.h"
 #include <string.h>
-
+UINT8 xdata GlobalBuf[64];
 /********************************内部函数声明*********************************/
 UINT8	Wait376Interrupt(void);
 UINT8	Query376Interrupt(void);
@@ -39,7 +39,11 @@ void	CH376WriteHostBlock(PUINT8 buf, UINT8 len);
 UINT8	CH376ReadBlock(PUINT8 buf);  
 UINT8	CH376DiskQuery(PUINT32 DiskFree);
 UINT8	CH376DiskCapacity(PUINT32 DiskCap);
-
+UINT8	CH376WriteReqBlock(PUINT8 pbuf);
+UINT8	CH376CheckNameSum(PUINT8 pDirName);
+UINT8	CH376ByteLocate(UINT32 offset);
+UINT8	CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount);
+UINT8	CH376LocateInUpDir(PUINT8 pPathName);
 /*********************************函数实现*************************************/
 void AlphabetTransfrom(PUINT8 name)			/* 小写文件名统一转换为大写文件名 */
 {
@@ -637,4 +641,207 @@ UINT8 SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	CH376CloseFile(0);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 	return DWIN_OK;	
+}
+UINT8 CH376WriteReqBlock(PUINT8 pbuf)  /* 向内部指定缓冲区写入请求的数据块,返回长度 */
+{
+	UINT8	s, l;
+	xWriteCH376Cmd(CMD01_WR_REQ_DATA);
+	s = l = xReadCH376Data();  /* 长度 */
+	if (l) 
+	{
+		do 
+		{
+			xWriteCH376Data(*pbuf);
+			pbuf ++;
+		}
+		while (-- l);
+	}
+	return s;
+}
+UINT8 CH376CheckNameSum(PUINT8 pDirName)  /* 计算长文件名的短文件名检验和,输入为无小数点分隔符的固定11字节格式 */
+{
+	UINT8 NameLen;
+	UINT8 CheckSum;
+	CheckSum = 0;
+	for (NameLen = 0; NameLen != 11; NameLen++) 
+		CheckSum = (CheckSum & 1 ? 0x80 : 0x00) + (CheckSum >> 1) + *pDirName++;
+	return CheckSum;
+}
+UINT8 CH376ByteLocate(UINT32 offset)  /* 以字节为单位移动当前文件指针 */
+{
+	xWriteCH376Cmd(CMD4H_BYTE_LOCATE);
+	xWriteCH376Data((UINT8)offset);
+	xWriteCH376Data((UINT8)((UINT16)offset>>8));
+	xWriteCH376Data((UINT8)(offset>>16));
+	xWriteCH376Data((UINT8)(offset>>24));
+	return Wait376Interrupt();
+}
+UINT8 CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount)  /* 以字节为单位从当前位置读取数据块 */
+{
+	UINT8 s;
+	xWriteCH376Cmd(CMD2H_BYTE_READ);
+	xWriteCH376Data((UINT8)ReqCount);
+	xWriteCH376Data((UINT8)(ReqCount>>8));
+	if (pRealCount) *pRealCount = 0;
+	while (1) 
+	{
+		s = Wait376Interrupt();
+		if (s == USB_INT_DISK_READ) 
+		{
+			s = CH376ReadBlock(pbuf);  /* 从当前主机端点的接收缓冲区读取数据块,返回长度 */
+			xWriteCH376Cmd(CMD0H_BYTE_RD_GO);
+			pbuf += s;
+			if (pRealCount) *pRealCount += s;
+		}
+		else return s;  /* 错误 */
+	}
+}
+UINT8 CH376LocateInUpDir(PUINT8 pPathName)  /* 在上级目录(文件夹)中移动文件指针到当前文件目录信息所在的扇区 */
+{
+	UINT8	s;
+	xWriteCH376Cmd(CMD14_READ_VAR32);
+	xWriteCH376Data(VAR_FAT_DIR_LBA);  /* 当前文件目录信息所在的扇区LBA地址 */
+	for (s = 4; s != 8; s ++) GlobalBuf[s] = xReadCH376Data();  /* 临时保存于全局缓冲区中,节约RAM */
+	s = CH376SeparatePath(pPathName);  /* 从路径中分离出最后一级文件名或者目录名,返回最后一级文件名或者目录名的偏移 */
+	if (s) s = CH376FileOpenDir(pPathName, s);  /* 是多级目录,打开多级目录下的最后一级目录,即打开文件的上级目录 */
+	else s = CH376FileOpen("/");  /* 根目录下的文件,则打开根目录 */
+	if (s != ERR_OPEN_DIR) return s;
+	*(PUINT32)(&GlobalBuf[0]) = 0;  /* 目录扇区偏移扇区数,保存在全局缓冲区中,节约RAM */
+	while (1) 
+	{  /* 不断移动文件指针,直到与当前文件目录信息所在的扇区LBA地址匹配 */
+		s = CH376SecLocate(*(PUINT32)(&GlobalBuf[0]));  /* 以扇区为单位在上级目录中移动文件指针 */
+		if (s != USB_INT_SUCCESS) return s;
+		CH376ReadBlock(&GlobalBuf[8]);  /* 从内存缓冲区读取CH376_CMD_DATA.SectorLocate.mSectorLba数据块,返回长度总是sizeof(CH376_CMD_DATA.SectorLocate) */
+		if (*(PUINT32)(&GlobalBuf[8]) == *(PUINT32)(&GlobalBuf[4])) return USB_INT_SUCCESS;  /* 已到当前文件目录信息扇区 */
+		xWriteCH376Cmd(CMD50_WRITE_VAR32);
+		xWriteCH376Data(VAR_FAT_DIR_LBA);  /* 得到前一个扇区,设置为新的文件目录信息扇区LBA地址 */
+		for (s = 8; s != 12; s ++) xWriteCH376Data(GlobalBuf[s]);
+		++*(PUINT32)(&GlobalBuf[0]);
+	}
+}
+UINT8 CH376LongNameWrite(PUINT8 pbuf, UINT16 ReqCount)  /* 长文件名专用的字节写子程序 */
+{
+	UINT8 s;
+	xWriteCH376Cmd(CMD2H_BYTE_WRITE);
+	xWriteCH376Data((UINT8)ReqCount);
+	xWriteCH376Data((UINT8)(ReqCount>>8));
+	while (1) 
+	{
+		s = Wait376Interrupt();
+		if (s == USB_INT_DISK_WRITE) 
+		{
+			if (pbuf) pbuf += CH376WriteReqBlock(pbuf);  /* 向内部指定缓冲区写入请求的数据块,返回长度 */
+			else 
+			{
+				xWriteCH376Cmd(CMD01_WR_REQ_DATA);  /* 向内部指定缓冲区写入请求的数据块 */
+				s = xReadCH376Data();  /* 长度 */
+				while (s--) xWriteCH376Data(0);  /* 填充0 */
+			}
+			xWriteCH376Cmd(CMD0H_BYTE_WR_GO);
+		}
+		else return s;  /* 错误 */
+	}
+}
+UINT8 CH376CreateLongName(PUINT8 pPathName, PUINT8 pLongName)  /* 新建具有长文件名的文件,关闭文件后返回,LongName输入路径必须在RAM中 */
+{
+	UINT8 s, i;
+	UINT8 DirBlockCnt;		/* 长文件名占用文件目录结构的个数 */
+	UINT16 count;			/* 临时变量,用于计数,用于字节读文件方式下实际读取的字节数 */
+	UINT16 NameCount;		/* 长文件名字节计数 */
+	UINT32 NewFileLoc;		/* 当前文件目录信息在上级目录中的起始位置,偏移地址 */
+	for (count = 0; count < LONG_NAME_BUF_LEN; count += 2) if (*(PUINT16)(&pLongName[count]) == 0) break;  /* 到结束位置 */
+	if (count == 0 || count >= LONG_NAME_BUF_LEN || count > LONE_NAME_MAX_CHAR) return ERR_LONG_NAME_ERR;  /* 长文件名无效 */
+	DirBlockCnt = count / LONG_NAME_PER_DIR;  /* 长文件名占用文件目录结构的个数 */
+	i = count - DirBlockCnt * LONG_NAME_PER_DIR;
+	if (i) 
+	{  /* 有零头 */
+		if (++DirBlockCnt * LONG_NAME_PER_DIR > LONG_NAME_BUF_LEN) return ERR_LONG_BUF_OVER;  /* 缓冲区溢出 */
+		count += 2;  /* 加上0结束符后的长度 */
+		i += 2;
+		if (i < LONG_NAME_PER_DIR) 
+		{  /* 最末的文件目录结构不满 */
+			while (i++ < LONG_NAME_PER_DIR) pLongName[count++] = 0xFF;  /* 把剩余数据填为0xFF */
+		}
+	}
+	s = CH376FileOpenPath(pPathName);  /* 打开多级目录下的文件 */
+	if (s == USB_INT_SUCCESS) 
+	{   /* 短文件名存在则返回错误 */
+		s = ERR_NAME_EXIST;
+		goto CH376CreateLongNameE;
+	}
+	if (s != ERR_MISS_FILE) return s;
+	s = CH376FileCreatePath(pPathName);  /* 新建多级目录下的文件 */
+	if (s != USB_INT_SUCCESS) return s;
+	i = CH376ReadVar8(VAR_FILE_DIR_INDEX);  /* 临时用于保存当前文件目录信息在扇区内的索引号 */
+	s = CH376LocateInUpDir(pPathName);  /* 在上级目录中移动文件指针到当前文件目录信息所在的扇区 */
+	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;  /* 没有直接返回是因为如果是打开了根目录那么必须要关闭后才能返回 */
+	NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET) + i * sizeof(FAT_DIR_INFO);  /* 计算当前文件目录信息在上级目录中的起始位置,偏移地址 */
+	s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
+	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+	s = CH376ByteRead(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO), NULL);  /* 以字节为单位读取数据,获得当前文件的目录信息FAT_DIR_INFO */
+	if ( s != USB_INT_SUCCESS ) goto CH376CreateLongNameE;
+	for (i = DirBlockCnt; i != 0; --i) 
+	{  /* 搜索空闲的文件目录结构用于存放长文件名 */
+		s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* 以字节为单位读取数据,获得下一个文件目录信息FAT_DIR_INFO */
+		if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+		if (count == 0) break;  /* 无法读出数据,上级目录结束了 */
+		if (GlobalBuf[0] && GlobalBuf[0] != 0xE5) 
+		{  /* 后面有正在使用的文件目录结构,由于长文件名必须连接存放,所以空间不够,必须放弃当前位置并向后转移 */
+			s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
+			if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+			GlobalBuf[0] = 0xE5;  /* 文件删除标志 */
+			for (s = 1; s != sizeof(FAT_DIR_INFO); s ++) GlobalBuf[s] = GlobalBuf[sizeof(FAT_DIR_INFO) + s];
+			s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* 写入一个文件目录结构,用于删除之前新建的文件,实际上稍后会将之转移到目录的最末位置 */
+			if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+			do 
+			{  /* 向后搜索空闲的文件目录结构 */
+				s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* 以字节为单位读取数据,获得下一个文件目录信息FAT_DIR_INFO */
+				if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+			} 
+			while (count && GlobalBuf[0]);  /* 如果仍然是正在使用的文件目录结构则继续向后搜索,直到上级目录结束或者有尚未使用过的文件目录结构 */
+			NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET);  /* 用上级目录的当前文件指针作为当前文件目录信息在上级目录中的起始位置 */
+			i = DirBlockCnt + 1;  /* 需要的空闲的文件目录结构的个数,包括短文件名本身一个和长文件名 */
+			if (count == 0) break;  /* 无法读出数据,上级目录结束了 */
+			NewFileLoc -= sizeof(FAT_DIR_INFO);  /* 倒回到刚才搜索到的空闲的文件目录结构的起始位置 */
+		}
+	}
+	if (i) 
+	{  /* 空闲的文件目录结构不足以存放长文件名,原因是上级目录结束了,下面增加上级目录的长度 */
+		s = CH376ReadVar8(VAR_SEC_PER_CLUS);  /* 每簇扇区数 */
+		if (s == 128) 
+		{  /* FAT12/FAT16的根目录,容量是固定的,无法增加文件目录结构 */
+			s = ERR_FDT_OVER;  /* FAT12/FAT16根目录下的文件数应该少于512个,需要磁盘整理 */
+			goto CH376CreateLongNameE;
+		}
+		count = s * DEF_SECTOR_SIZE;  /* 每簇字节数 */
+		if (count < i * sizeof(FAT_DIR_INFO)) count <<= 1;  /* 一簇不够则增加一簇,这种情况只会发生于每簇为512字节的情况下 */
+		s = CH376LongNameWrite( NULL, count );  /* 以字节为单位向当前位置写入全0数据块,清空新增加的文件目录簇 */
+		if ( s != USB_INT_SUCCESS ) goto CH376CreateLongNameE;
+	}
+	s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
+	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+	GlobalBuf[11] = ATTR_LONG_NAME;
+	GlobalBuf[12] = 0x00;
+	GlobalBuf[13] = CH376CheckNameSum(&GlobalBuf[sizeof(FAT_DIR_INFO)]);  /* 计算长文件名的短文件名检验和 */
+	GlobalBuf[26] = 0x00;
+	GlobalBuf[27] = 0x00;
+	for (s = 0; DirBlockCnt != 0;) 
+	{  /* 长文件名占用的文件目录结构计数 */
+		GlobalBuf[0] = s ? DirBlockCnt : DirBlockCnt | 0x40;  /* 首次要置长文件名入口标志 */
+		DirBlockCnt--;
+		NameCount = DirBlockCnt * LONG_NAME_PER_DIR;
+		for (s = 1; s < sizeof( FAT_DIR_INFO ); s += 2) 
+		{  /* 输出长文件名,长文件名的字符在磁盘上UNICODE用小端方式存放 */
+			if (s == 1 + 5 * 2) s = 14;  /* 从长文件名的第一组1-5个字符跳到第二组6-11个字符 */
+			else if (s == 14 + 6 * 2) s = 28;  /* 从长文件名的第二组6-11个字符跳到第三组12-13个字符 */
+			GlobalBuf[s] = pLongName[NameCount++];
+			GlobalBuf[s + 1] = pLongName[NameCount++];
+		}
+		s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* 以字节为单位写入一个文件目录结构,长文件名 */
+		if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
+	}
+	s = CH376LongNameWrite(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO));  /* 以字节为单位写入一个文件目录结构,这是转移来的之前新建的文件的目录信息 */
+CH376CreateLongNameE:
+	CH376CloseFile(FALSE);  /* 对于根目录则必须要关闭 */
+	return s;
 }

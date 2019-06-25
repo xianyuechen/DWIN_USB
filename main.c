@@ -34,8 +34,6 @@ UINT16 TIMES = 0;
 FAT_NAME MatchLish[DIR_FILE_MAX] = {0};
 int main()
 {
-	
-	FAT_DIR_INFO xdata Dir;
 	UINT8 j = 0;
 	UINT32 i = 0;
 	UINT8 COUNT = 0;
@@ -43,27 +41,37 @@ int main()
 	UINT32 Size = 0;
 	UINT8 xdata Buf[BUF_SIZE];
 	UINT32 Buf_Size = 0;
-	UINT8 xdata filename[64];	
+	UINT8 xdata filename[64];
+	UINT8 xdata filename2[64];	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	for (i = 0; i < DIR_FILE_MAX; i++)
 		memset(MatchLish[i].NAME, 0, sizeof(MatchLish[i].NAME));
 	memset(filename, 0, sizeof(filename));
+	memset(filename2, 0, sizeof(filename2));
 	memset(Buf, 0, sizeof(Buf));
-	memset(&Dir, 0, sizeof(FAT_DIR_INFO));
 	//memset(FileDataBuf, 0, sizeof(FileDataBuf));	
 	//strcpy(filename, "T5L51*");		 ///FILEEE.TXT
-	strcpy(filename, "/DWIN_SET/T5L51.BIN");
+	strcpy(filename, "/DWIN_SET/XXX.BIN");
+	strcpy(filename2, "XXASFAJJAHAFA.C");
+	for ( j = 0; filename2[j] != 0; j++ ) {  /* 复制并转换长文件名到LongNameBuf长文件名缓冲区 */
+			Buf[j*2] = filename2[j];  /* 将英文字符转换为两字节的小端UNICODE编码 */
+			Buf[j*2+1] = 0x00;
+		}
+		SendString(Buf, 40);
 	//ReadDGUS(0x1000, filename, 2);
 	//UART5_Sendbyte(filename[1]);
 	//UART5_Sendbyte(filename[1]);
 	//res = CH376USBInit();
 	//SystemUpdate(FILE_T5L51_BIN);
 	CH376USBInit();
+	UART5_Sendbyte(0x55);
+	CH376CreateLongName(filename, Buf);
 	//FindDWINFile(filename, "BIN");
 	//CH376ReadFile(filename, Buf, &Buf_Size, 2);
-	//SendString(Buf, Buf_Size);
+	UART5_Sendbyte(0xaa);
+	SendString(Buf, Buf_Size);
 	while(1);	
 	//res = CH376TouchDir(filename);			/* 创建目录 */
 	//res = CH376TouchNewFile(filename);		/* 创建文件 */

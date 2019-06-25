@@ -56,4 +56,5 @@ UINT8 CH376SectorWrite(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount);	/* ртихгЬн
 UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount);	/* ртихгЬн╙╣╔н╩╢с╣╠г╟н╩жц╤ах║йЩ╬щ©И,╡╩ж╖ЁжSD©╗ */
 UINT8 CH376SecLocate(UINT32 offset);		/* ртихгЬн╙╣╔н╩рф╤╞╣╠г╟нд╪Чж╦уК	*/
 
+UINT8	CH376CreateLongName( PUINT8 PathName, PUINT8 LongName );
 #endif
