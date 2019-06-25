@@ -43,7 +43,6 @@
 #define FILE_ALL						(0xFF)	/* 整体系统升级 */
 #define DWIN_DIR						("/DWIN_SET")	/* DWIN存放升级文件的文件夹 */
 #define MATCH_LIST_SIZE					(40)	/* 匹配文件列表的文件数目 */
-
 /* 文件Flash地址计算 */
 #define ADDR_T5L51_BIN		(UINT32)(0x10000);							/* T5L51*.BIN 文件地址 */
 #define ADDR_DWIN_OS		(UINT32)(0x18000);							/* DWINOS* 文件地址 */
