@@ -14,17 +14,18 @@
 修改内容   : 	
 ******************************************************************************/
 #include "file_sys.h"
-#include <string.h>
+#include "string.h"
+#include "t5los8051.h"
+#include "driver/usb/para_port.h"
+#include "driver/uart/uart.h"
 UINT8 xdata GlobalBuf[64];
 /********************************内部函数声明*********************************/
-UINT8	GetPathType(PUINT8 pPathName);
 UINT8	Wait376Interrupt(void);
 UINT8	Query376Interrupt(void);
 void	CH376SetFileName(PUINT8 name);
 UINT8	CH376DeleteFile(PUINT8 pName);
 UINT8	CH376SeparatePath(PUINT8 path);
 UINT8	CH376FileOpenDir(PUINT8 PathName, UINT8 StopName);
-UINT8	CH376FileCreate(PUINT8 PathName);
 void	CH376WriteVar8(UINT8 var, UINT8 dat);
 UINT8	CH376ReadVar8(UINT8 var);
 void	CH376WriteVar32(UINT8 var, UINT32 dat);
@@ -56,12 +57,6 @@ void AlphabetTransfrom(PUINT8 name)			/* 小写文件名统一转换为大写文件名 */
 	}
 }
 
-UINT8 GetPathType(PUINT8 pPathName)			/* 判断绝对路径是目录还是文件 */
-{
-	while(*pPathName++) if(*pPathName == '.') return PATH_FILE;
-	return PATH_DIR;
-}
-
 UINT8 Wait376Interrupt(void)
 {
 	UINT32 i = 0;
@@ -90,6 +85,12 @@ void CH376SetFileName(PUINT8 name)  /* 设置将要操作的文件的文件名 */
 		if (c == DEF_SEPAR_CHAR1 || c == DEF_SEPAR_CHAR2) c = 0;  /* 强行将文件名截止 */
 		xWriteCH376Data (c);
 	}	
+}
+
+UINT8 CH376Error(void)
+{
+	CH376CloseFile(0);
+	return DWIN_ERROR;
 }
 
 UINT8 CH376DeleteFile(PUINT8 pName)		/* 在根目录或者当前目录下删除文件或者目录(文件夹) */
@@ -172,62 +173,6 @@ UINT8 CH376FileCreate(PUINT8 PathName)		/* 在根目录或者当前目录创建文件 */
 {
 	CH376SetFileName(PathName);
 	return (CH376SendCmdWaitInt(CMD0H_FILE_CREATE));
-}
-
-UINT8 CH376FileOrDirCreate(PUINT8 pPathName)
-{
-	UINT8 xdata NameBuf[PATH_NUMBER][12];
-	UINT8 i = 0;
-	UINT8 j = 0;
-	UINT8 Status = 0;
-	UINT8 PathType = 0;
-	memset(NameBuf, 0, sizeof(NameBuf));
-	/* Step1:把文件目录拆分成单独文件或者目录 */	
-	for (i = 0; i < PATH_NUMBER; i++)		
-	{
-		for (j = 0; j < 12; j++)
-		{
-			NameBuf[i][j] =  *pPathName++;
-			if (*pPathName == '/' || *pPathName == 0) 
-			{
-				pPathName++;
-				break;	
-			}
-		}
-		if (*pPathName == 0) break;
-	}
-	/* Step2:打开每一级目录或者最后的文件 不存在则新建 存在与目录冲突的文件则删除文件 */
-	for (j = 0; j < i+1; j++)				
-	{
-		Status = CH376FileOpen(NameBuf[j]);
-		if (j != i && Status == USB_INT_SUCCESS)
-		{
-			while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));	
-			j = 0;	/* 进行删除操作后会回到根目录, 所以需要从头再次打开 */
-			CH376FileOpen(NameBuf[j]);
-			continue;
-		} 
-		if (Status == ERR_MISS_FILE)
-		{
-			PathType = GetPathType(NameBuf[j]);
-			if (PathType == PATH_FILE)
-			{
-				while (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j]));
-			}
-			if (PathType == PATH_DIR)
-			{
-				while (USB_INT_SUCCESS != CH376DirCreate(NameBuf[j]));
-			}
-		}
-		else if (Status == ERR_OPEN_DIR) continue;
-		else if (Status != USB_INT_SUCCESS) 
-		{
-			CH376CloseFile(0);
-			return DWIN_ERROR;
-		}
-	}
-	CH376CloseFile(0);
-	return DWIN_OK;
 }
 
 UINT8 CH376FileCreatePath(PUINT8 PathName)  /* 新建多级目录下的文件,支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */

@@ -16,6 +16,8 @@
 #ifndef _USB_DGUS_H_
 #define _USB_DGUS_H_
 
-#include "app/app_usb/app_interface.h"
+#include "driver/system/sys.h"
+
+void USBModule(void);
 
 #endif

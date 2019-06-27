@@ -13,20 +13,17 @@
 作    者   : 
 修改内容   : 	
 ******************************************************************************/
-#include "driver/usb/ch376.h"
-#include "driver/usb/para_port.h"
-#include "t5los8051.h"
-#include "driver/uart/uart.h"
-
 #ifndef _FILE_SYS_H_
 #define _FILE_SYS_H_
+
+#include "driver/system/sys.h"
+#include "driver/usb/ch376.h"
 /********************************宏定义**************************************/
 #define	ERR_USB_UNKNOWN					(0xFA)	/* 未知错误,不应该发生的情况,需检查硬件或者程序错误 */
 
 #define DIR_FILE_MAX					(40)	/* 目录下枚举最多文件数 */
 #define PATH_NUMBER						(64)	/* 绝对路径数量 */
-#define PATH_FILE						(0x55)
-#define PATH_DIR						(0xAA)
+
 /********************************结构体声明***********************************/
 typedef struct _FAT_NAME
 {
@@ -38,11 +35,13 @@ typedef struct _FAT_NAME
 void AlphabetTransfrom(PUINT8 name);		/* 小写文件名统一转换为大写文件名 */
 
 /* 文件操作 */
+UINT8 CH376Error(void);
 UINT8 CH376FileOpen(PUINT8 name);			/* 在根目录或者当前目录下打开文件或者目录(文件夹) */
 UINT8 CH376DirCreate(PUINT8 PathName);		/* 在根目录或者当前目录创建目录 */
+UINT8 CH376FileCreate(PUINT8 PathName);		/* 在根目录或者当前目录创建文件 */
+UINT8 CH376DeleteFile(PUINT8 pName);		/* 在根目录或者当前目录删除文件或者目录 */
 UINT8 CH376FileDeletePath(PUINT8 PathName);	/* 删除文件,如果已经打开则直接删除,否则对于文件会先打开再删除,支持多级目录路径 */
 UINT8 CH376FileOpenPath(PUINT8 PathName);	/* 打开多级目录下的文件或者目录(文件夹),支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
-UINT8 CH376FileOrDirCreate(PUINT8 pPathName);
 UINT8 CH376FileCreatePath(PUINT8 PathName);	/* 新建多级目录下的文件,支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
 UINT8 CH376CloseFile(UINT8 param);			/* 文件关闭 */
 UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish);	/* 匹配文件 */

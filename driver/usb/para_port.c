@@ -13,9 +13,10 @@
 作    者   : 
 修改内容   : 	
 ******************************************************************************/
-#include "T5LOS8051.H"
 #include "para_port.h"
+#include "t5los8051.h"
 #include "intrins.h"
+
 #define CH376_DATA_DAT_OUT(data)	{P2 = data;}		/* 向并口输出数据 */
 #define CH376_DATA_DAT_IN()			(P2)				/* 从并口输入数据 */
 #define	CH376_DATA_DIR_OUT()		{P2MDOUT |= 0xFF;}	/* 设置并口方向为输出 */

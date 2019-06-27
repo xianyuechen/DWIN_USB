@@ -14,11 +14,10 @@
 修改内容   : 	
 ******************************************************************************/
 
-#include "t5los8051.h"
-#include "driver/system/sys.h"
 #ifndef _PARA_PORT_H_
 #define _PARA_PORT_H_
-	
+
+#include "driver/system/sys.h"	
 /********************************对外函数声明*********************************/
 
 void CH376_PORT_INIT(void);			/* 初始化并口IO */

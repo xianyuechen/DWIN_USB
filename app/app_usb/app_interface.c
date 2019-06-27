@@ -14,7 +14,14 @@
 ĞŞ¸ÄÄÚÈİ   : 	
 ******************************************************************************/
 #include "app_interface.h"
+#include "string.h"
 #include "stdio.h"
+#include "driver/usb/para_port.h"
+#include "driver/usb/ch376.h"
+#include "driver/uart/uart.h"
+#include "driver/dgus/dgus.h"
+#include "app/app_usb/file_sys.h"
+
 /********************************¶ÔÄÚº¯ÊıÉùÃ÷*********************************/
 
 UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize);
@@ -39,7 +46,7 @@ void Delay(void)
 }
 
 /*****************************************************************************
- º¯ Êı Ãû  : CH376USBInit
+ º¯ Êı Ãû  : USBInit
  ¹¦ÄÜÃèÊö  : ¼ì²âCH376Í¨Ñ¶¡¢ÉèÖÃUSB¹¤×÷Ä£Ê½¡¢´ÅÅÌ³õÊ¼»¯
  ÊäÈë²ÎÊı  : ÎŞ	 
  Êä³ö²ÎÊı  : USB_INT_SUCCESS ³É¹¦
@@ -49,7 +56,7 @@ void Delay(void)
  ×÷    Õß  : chenxianyue
  ĞŞ¸ÄÄÚÈİ  : ´´½¨
 *****************************************************************************/
-UINT8 CH376USBInit(void)
+UINT8 USBInit(void)
 {
 	UINT8 i = 0, Status = 0;
 	xWriteCH376Cmd(CMD11_CHECK_EXIST);  	/* ²âÊÔµ¥Æ¬»úÓëCH376Ö®¼äµÄÍ¨Ñ¶½Ó¿Ú */
@@ -76,9 +83,10 @@ UINT8 CH376USBInit(void)
 	return USB_INT_SUCCESS;
 }
 /*****************************************************************************
- º¯ Êı Ãû  : CH376TouchNewFile
- ¹¦ÄÜÃèÊö  : ´´½¨ĞÂÎÄ¼ş,Ö§³Ö¶à¼¶Â·¾¶
- ÊäÈë²ÎÊı  : PUINT8 pPathName ÎÄ¼ş¾ø¶ÔÂ·¾¶Ãû	 
+ º¯ Êı Ãû  : CreateFileOrDir
+ ¹¦ÄÜÃèÊö  : ´´½¨ĞÂÎÄ¼ş»òÕßÄ¿Â¼,Ö§³Ö¶à¼¶Â·¾¶
+ ÊäÈë²ÎÊı  : PUINT8 pPathName	ÎÄ¼ş¾ø¶ÔÂ·¾¶Ãû
+ 			 UINT8 TypePath		Â·¾¶ÊôĞÔ	 
  Êä³ö²ÎÊı  : USB_INT_SUCCESS ³É¹¦
  			 ÆäËû ³ö´í
  ĞŞ¸ÄÀúÊ·  :
@@ -86,13 +94,77 @@ UINT8 CH376USBInit(void)
  ×÷    Õß  : chenxianyue
  ĞŞ¸ÄÄÚÈİ  : ´´½¨
 *****************************************************************************/
-UINT8 CH376TouchNewFile(PUINT8 pPathName)
+UINT8 CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 {
 	AlphabetTransfrom(pPathName);
-	return (CH376FileCreatePath(pPathName));	
+	return (CH376CreateFileOrDir(pPathName, TypePath));	
+}
+UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
+{
+	UINT8 xdata NameBuf[PATH_NUMBER][12];
+	UINT8 i = 0;
+	UINT8 j = 0;
+	UINT8 Status = 0;
+	memset(NameBuf, 0, sizeof(NameBuf));
+	/* (1) °ÑÎÄ¼şÄ¿Â¼²ğ·Ö³Éµ¥¶ÀÎÄ¼ş»òÕßÄ¿Â¼ */	
+	for (i = 0; i < PATH_NUMBER; i++)		
+	{
+		for (j = 0; j < 12; j++)
+		{
+			NameBuf[i][j] =  *pPathName++;
+			if (*pPathName == '/' || *pPathName == 0) 
+			{
+				pPathName++;
+				break;	
+			}
+		}
+		if (*pPathName == 0) break;
+	}
+	/* (2) ´ò¿ªÃ¿Ò»¼¶Ä¿Â¼»òÎÄ¼ş ²»´æÔÚÔòĞÂ½¨ ´æÔÚÓëÖ®³åÍ»µÄÎÄ¼ş»òÄ¿Â¼ÔòÉ¾³ı */
+	for (j = 0; j < i+1; j++)				
+	{
+		Status = CH376FileOpen(NameBuf[j]);
+		if (j == i && TypePath == PATH_FILE)	
+		{
+			switch (Status)	/* ×îºóÒ»¼¶Â·¾¶ÎªÎÄ¼ş */
+			{
+				case ERR_MISS_FILE:				/* ·¢ÏÖÊÇÎÄ¼ş»òÄ¿Â¼²»´æÔÚ */
+				{
+					while (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j]));
+					break;	
+				}
+				case ERR_OPEN_DIR:				/* ·¢ÏÖÊÇÄ¿Â¼ */
+				{
+					if (USB_INT_SUCCESS != CH376DeleteFile(NameBuf[j])) return CH376Error();
+					j = 0;
+					break;
+				}
+				default:						/* ÎÄ¼ş±»´ò¿ª */
+					break;
+			}
+			continue;	
+		}
+		switch (Status)	/* ÖĞ¼äÂ·¾¶Ä¬ÈÏÎªÄ¿Â¼ */
+		{
+			case ERR_MISS_FILE:					/* ·¢ÏÖÊÇÎÄ¼ş»òÄ¿Â¼²»´æÔÚ */
+			{
+				while (USB_INT_SUCCESS != CH376DirCreate(NameBuf[j]));
+				break;	
+			}
+			case USB_INT_SUCCESS: 				/* ·¢ÏÖÊÇÎÄ¼ş */
+			{
+				while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));
+				j = 0;
+				break;
+			}
+			default:							/* Ä¿Â¼±»´ò¿ª */
+				break;
+		}
+	}
+	return DWIN_OK;
 }
 /*****************************************************************************
- º¯ Êı Ãû  : CH376RmFile
+ º¯ Êı Ãû  : RmFileOrDir
  ¹¦ÄÜÃèÊö  : É¾³ıÎÄ¼ş»òÕßÄ¿Â¼,Ö§³Ö¶à¼¶Â·¾¶
  ÊäÈë²ÎÊı  : PUINT8 pPathName ÎÄ¼ş¾ø¶ÔÂ·¾¶Ãû	 
  Êä³ö²ÎÊı  : USB_INT_SUCCESS ³É¹¦
@@ -102,26 +174,11 @@ UINT8 CH376TouchNewFile(PUINT8 pPathName)
  ×÷    Õß  : chenxianyue
  ĞŞ¸ÄÄÚÈİ  : ´´½¨
 *****************************************************************************/
-UINT8 CH376RmFile(PUINT8 pPathName)
+UINT8 RmFileOrDir(PUINT8 pPathName)
 {
 	AlphabetTransfrom(pPathName);
-	return (CH376FileDeletePath(pPathName));
-}
-/*****************************************************************************
- º¯ Êı Ãû  : CH376TouchDir
- ¹¦ÄÜÃèÊö  : ´´½¨¹¤×÷Ä¿Â¼
- ÊäÈë²ÎÊı  : PUINT8 pPathName ÎÄ¼ş¾ø¶ÔÂ·¾¶Ãû	 
- Êä³ö²ÎÊı  : USB_INT_SUCCESS ³É¹¦
- 			 ÆäËû ³ö´í
- ĞŞ¸ÄÀúÊ·  :
- ÈÕ    ÆÚ  : 2019Äê6ÔÂ21ÈÕ
- ×÷    Õß  : chenxianyue
- ĞŞ¸ÄÄÚÈİ  : ´´½¨
-*****************************************************************************/
-UINT8 CH376TouchDir(PUINT8 pPathName)
-{
-	AlphabetTransfrom(pPathName);
-	return (CH376FileOrDirCreate(pPathName));
+	if (USB_INT_SUCCESS == CH376FileDeletePath(pPathName)) return DWIN_OK;
+	else return DWIN_ERROR;
 }
 /*****************************************************************************
  º¯ Êı Ãû  : CH376ReadFile
@@ -194,23 +251,25 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 Sec
  ×÷    Õß  : chenxianyue
  ĞŞ¸ÄÄÚÈİ  : ´´½¨
 *****************************************************************************/
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag)			/* Ğ´ÈëÎÄ¼ş¡¢²»´æÔÚÔòĞÂ½¨ */
+UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)	/* Ğ´ÈëÎÄ¼ş¡¢²»´æÔÚÔòĞÂ½¨ */
 {
 	UINT8 xdata Buf[BUF_SIZE];					/* ×Ö·û´æ´¢»º³åÇø 4096×Ö½Ú = 8¸öÉÈÇø */
 	UINT8 xdata EndBuf[DEF_SECTOR_SIZE];
-	UINT8 Status, SectorCount;
-	UINT16 BufFreeLen, BufSourceLen;
-	UINT32 FileSize;
+	UINT8 Status = 0, SectorCount = 0;
+	PUINT8 pMid = NULL; 
+	UINT16 BufFreeLen = 0, BufSourceLen = 0, EndBufSize = 0;
+	UINT32 FileSize = 0;
 
-	if ((NULL == pPathName) || (NULL == pBuf)) return DWIN_ERROR;
-	AlphabetTransfrom(pPathName);
 	memset(Buf, 0, BUF_SIZE);
 	memset(EndBuf, 0, DEF_SECTOR_SIZE);
+	if ((NULL == pPathName) || (NULL == pData)) return DWIN_ERROR;
+	AlphabetTransfrom(pPathName);
+	
 	/* (1) ¼ì²âÎÄ¼ş´æÔÚÓë·ñ ²»´æÔÚÔòĞÂ½¨ÎÄ¼ş */
 	Status = CH376FileOpenPath(pPathName);
 	if (Status != USB_INT_SUCCESS) 
 	{
-		CH376FileCreatePath(pPathName); 
+		CH376CreateFileOrDir(pPathName, PATH_FILE);
 		Status = CH376FileOpenPath(pPathName);
 		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 		Flag = 	WRITE_FROM_HEAD;
@@ -226,7 +285,8 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag)			/* Ğ´ÈëÎÄ¼ş¡¢²
 		case WRITE_FROM_END:					/* Èô´æÔÚÎ²²¿Êı¾İĞèÒªÏÈÖØĞÂÆ´½ÓĞ´Èë */
 		{
 			FileSize = CH376GetFileSize();
-			if (FileSize % DEF_SECTOR_SIZE)		/* ÊÇ·ñ´æÔÚÎ²²¿ÁãÍ·Êı¾İ ¸ù¾İÄÜ·ñÕû³ı512ÅĞ¶Ï */ 
+			EndBufSize = FileSize % DEF_SECTOR_SIZE;
+			if (EndBufSize)		/* ÊÇ·ñ´æÔÚÎ²²¿ÁãÍ·Êı¾İ ¸ù¾İÄÜ·ñÕû³ı512ÅĞ¶Ï */ 
 			{
 				Status = CH376SectorRead(EndBuf, 1, NULL);
 			}
@@ -236,30 +296,52 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pBuf, UINT8 Flag)			/* Ğ´ÈëÎÄ¼ş¡¢²
 		default:
 			return DWIN_ERROR;
 	}
-	if (strlen(EndBuf) != 0) 
+	FileSize += DataLen;
+	if (EndBufSize != 0)		/* ÓĞÁãÍ·Êı¾İ ÏÈÓëpData×éºÏ³ÉÊı¾İ°ü Ğ´Ò»´Î²»´óÓÚ4KµÄÊı¾İ */ 
 	{
-		strncpy(Buf, EndBuf, strlen(EndBuf));	/* ÁãÍ·Êı¾İÏÈĞ´Èëµ½»º³åÇø */
-	}
-	FileSize = FileSize + strlen(pBuf);			/* ×îÖÕĞ´ÈëµÄÎÄ¼ş´óĞ¡ */
-	/* (2) Ñ­»·Ğ´Êı¾İ */
-	while(1)
-	{
-		BufFreeLen = BUF_SIZE - strlen(Buf);
-		BufSourceLen = strlen(pBuf);
-		strncat(Buf, pBuf, (BufSourceLen > BufFreeLen ? BufFreeLen : BufSourceLen));
-		if (BUF_SIZE == strlen(Buf)) SectorCount = BUF_SIZE / DEF_SECTOR_SIZE;
-		else									/* ×îºóÒ»´ÎĞ´Êı¾İ, Buf»º³åÇøÃ»ÓĞ´æÂúµÄÇé¿ö */
+		strncpy(Buf, EndBuf, EndBufSize);			
+		BufFreeLen = BUF_SIZE - EndBufSize;
+		pMid = Buf;
+		pMid += EndBufSize;
+		if (DataLen > BufFreeLen)
 		{
-			SectorCount = strlen(Buf) / DEF_SECTOR_SIZE + (strlen(Buf) % DEF_SECTOR_SIZE ? 1 : 0);
-			Buf[strlen(Buf)] = 0; 
+			strncpy(pMid, pData, BufFreeLen);
+			SectorCount = BUF_SIZE / DEF_SECTOR_SIZE;
+			DataLen -= BufFreeLen;
+			pData += BufFreeLen;	
+		}
+		else
+		{
+			strncpy(pMid, pData, DataLen);
+			SectorCount = (EndBufSize + DataLen) / DEF_SECTOR_SIZE;			/* ÉÈÇøÊı Èç¹û²»ÊÇÉÈÇøÕûÊı±¶ÔòÉÈÇøÊı+1 */
+			if ((EndBufSize + DataLen) % DEF_SECTOR_SIZE) SectorCount++;	/* ÉÏÃæ¼ÆËãÏòÁãÈ¡Õû ÕâÀï¼ÆËã²¹³¥ ÉÈÇøÊı+1 */
+			DataLen = 0;
 		}
 		Status = CH376SectorWrite(Buf, SectorCount, NULL);
-		if (SectorCount != BUF_SIZE / DEF_SECTOR_SIZE) break;
+		memset(Buf, 0, BUF_SIZE);	/* Ğ´Íê½«51»º³åÇøÇåÁã */
+	}
+	/* (2) Ñ­»·Ğ´Êı¾İ */
+	while(DataLen)
+	{
+		if (DataLen > BUF_SIZE)
+		{
+			strncpy(Buf, pData, BUF_SIZE);
+			SectorCount = BUF_SIZE / DEF_SECTOR_SIZE;
+			DataLen -= BUF_SIZE;
+			pData += BUF_SIZE;	
+		}
+		else
+		{
+			strncpy(Buf, pData, DataLen);
+			SectorCount = DataLen / DEF_SECTOR_SIZE;		/* ÉÈÇøÊı Èç¹û²»ÊÇÉÈÇøÕûÊı±¶ÔòÉÈÇøÊı+1 */
+			if (DataLen % DEF_SECTOR_SIZE) SectorCount++;	/* ÉÏÃæ¼ÆËãÏòÁãÈ¡Õû ÕâÀï¼ÆËã²¹³¥ ÉÈÇøÊı+1 */
+			DataLen = 0;
+		}
+		Status = CH376SectorWrite(Buf, SectorCount, NULL);
 		memset(Buf, 0, BUF_SIZE);				/* »º´æÇøÇå¿Õ */
-		pBuf += BufFreeLen;
 	}
 	CH376WriteVar32(VAR_FILE_SIZE, FileSize);	/* ½«ÕıÈ·µÄµ±Ç°ÎÄ¼ş³¤¶ÈĞ´ÈëCH376ÄÚ´æ */
-	Status = CH376SectorWrite(pBuf, 0, NULL);	/* Ğ´0³¤¶È,Êµ¼ÊÊÇË¢ĞÂÎÄ¼ş³¤¶È °Ñ»º³åÇøÊı¾İÕæÕıĞ´ÈëUSB */
+	Status = CH376SectorWrite(pData, 0, NULL);	/* Ğ´0³¤¶È,Êµ¼ÊÊÇË¢ĞÂÎÄ¼ş³¤¶È °Ñ»º³åÇøÊı¾İÕæÕıĞ´ÈëUSB */
 	return Status;
 }
 
@@ -421,12 +503,12 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 }
 /*****************************************************************************
  º¯ Êı Ãû  : UpdateSet
- ¹¦ÄÜÃèÊö  : ¸üĞÂ¿ØÖÆ×ÓÉèÖÃ
- ÊäÈë²ÎÊı  : PUINT8 pBuf     ¿ØÖÆ×ÖBUF»º³åÇø
-             UINT8 Flag_EN   Éı¼¶Ê¹ÄÜ±êÖ¾Î»
-			 UINT8 UpSpace   Éı¼¶¿Õ¼ä
-			 UINT32 UpAddr   ÎÄ¼şÉı¼¶µØÖ·	
-			 UINT16 FileSize Éı¼¶ÎÄ¼ş´óĞ¡ 
+ ¹¦ÄÜÃèÊö  : ¸üĞÂ¿ØÖÆ×ÖÉèÖÃ
+ ÊäÈë²ÎÊı  : PUINT8	pBuf		¿ØÖÆ×ÖBUF»º³åÇø
+             UINT8	Flag_EN		Éı¼¶Ê¹ÄÜ±êÖ¾Î»
+			 UINT8	UpSpace		Éı¼¶¿Õ¼ä
+			 UINT32	UpAddr		ÎÄ¼şÉı¼¶µØÖ·	
+			 UINT16	FileSize	Éı¼¶ÎÄ¼ş´óĞ¡ 
  Êä³ö²ÎÊı  : DWIN_OK ³É¹¦
              ÆäËû    Ê§°Ü
  ĞŞ¸ÄÀúÊ·  :
@@ -447,3 +529,4 @@ void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 
 	 *pBuf++ = 0x00;					/* Ä¬ÈÏ²»½øĞĞCRCĞ£Ñé */
 	 *pBuf++ = 0x00;
 }
+
