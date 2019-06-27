@@ -202,8 +202,8 @@ UINT8 CH376FileOrDirCreate(PUINT8 pPathName)
 		Status = CH376FileOpen(NameBuf[j]);
 		if (j != i && Status == USB_INT_SUCCESS)
 		{
-			while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));
-			j = 0;
+			while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));	
+			j = 0;	/* 进行删除操作后会回到根目录, 所以需要从头再次打开 */
 			CH376FileOpen(NameBuf[j]);
 			continue;
 		} 
@@ -532,7 +532,7 @@ UINT8 CH376ReadBlock(PUINT8 buf)  /* 从当前主机端点的接收缓冲区读取数据块,返回长
 	return s;
 }
 
-UINT8 CH376DiskQuery(PUINT32 DiskFree) 		//查询磁盘剩余空间信息，扇区数
+UINT8 CH376DiskQuery(PUINT32 DiskFree) 		/* 查询磁盘剩余空间信息，扇区数	*/
 {
 	UINT8	s, c0, c1, c2, c3;
 	s = CH376SendCmdWaitInt(CMD0H_DISK_QUERY);
