@@ -13,10 +13,10 @@
 作    者   : 
 修改内容   : 	
 ******************************************************************************/
-#include "ch376.h"
-#include "para_port.h"
+#include "driver/usb/ch376.h"
+#include "driver/usb/para_port.h"
 #include "t5los8051.h"
-#include "system/uart.h"
+#include "driver/uart/uart.h"
 
 #ifndef _FILE_SYS_H_
 #define _FILE_SYS_H_

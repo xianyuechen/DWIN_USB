@@ -13,12 +13,12 @@
 作    者   : 
 修改内容   : 	
 ******************************************************************************/
-#include "para_port.h"
-#include "ch376.h"
-#include "file_sys.h"
+#include "driver/usb/para_port.h"
+#include "driver/usb/ch376.h"
+#include "app/app_usb/file_sys.h"
 #include "string.h"
-#include "system/uart.h"
-#include "system/dgus.h"
+#include "driver/uart/uart.h"
+#include "driver/dgus/dgus.h"
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 

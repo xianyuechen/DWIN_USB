@@ -14,13 +14,13 @@
 * ÐÞ¸ÄÄÚÈÝ   : 
 ******************************************************************************/
 #include "t5los8051.h"
-#include "system/sys.h"
-#include "ch376/app_interface.h"
-#include "system/uart.h"
-#include "ch376/ch376.h"
-#include "ch376/para_port.h"
-#include "ch376/file_sys.h"
-#include "system/dgus.h"
+#include "driver/system/sys.h"
+#include "app/app_usb/app_interface.h"
+#include "driver/uart/uart.h"
+#include "driver/usb/ch376.h"
+#include "driver/usb/para_port.h"
+#include "app/app_usb/file_sys.h"
+#include "driver/dgus/dgus.h"
 #include "string.h"
 #include "stdio.h"
 

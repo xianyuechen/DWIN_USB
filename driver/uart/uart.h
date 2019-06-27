@@ -14,7 +14,7 @@
 ÐÞ¸ÄÄÚÈÝ   : 	
 ******************************************************************************/
 #include "t5los8051.h"
-#include "sys.h"
+#include "driver/system/sys.h"
 
 #ifndef _UART_H_
 #define _UART_H_
