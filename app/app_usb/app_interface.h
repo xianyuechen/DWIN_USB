@@ -16,7 +16,7 @@
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 #include "driver/system/sys.h"
-
+#include "app/app_usb/file_sys.h"
 /********************************宏定义***************************************/
 #define	USB_DEVICE_OFF					(0x00)	/* 未启用USB设备方式 */
 #define	USB_DEVICE_ON_OUTSIDE_FIRMWARE	(0x01)	/* 已启用USB设备方式,外部固件模式(串口连接方式不支持) */
@@ -79,6 +79,7 @@ UINT8 RmFileOrDir(PUINT8 pPathName);								/* 删除文件或者目录 */
 UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 读取文件信息 */
 UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 写入文件、不存在则新建 */
 UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix);		/* 搜索DWIN升级文件 */
+UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
 UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
 
 #endif

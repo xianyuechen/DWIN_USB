@@ -20,7 +20,6 @@
 #include "driver/usb/ch376.h"
 #include "driver/uart/uart.h"
 #include "driver/dgus/dgus.h"
-#include "app/app_usb/file_sys.h"
 
 /********************************对内函数声明*********************************/
 
@@ -367,7 +366,7 @@ UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix)
 	UINT16 NameLen = 0;
 	if (strlen(pFileSuffix) != 3) return DWIN_ERROR;				/* 检测后缀名是否合法 */
 	Status = CH376MatchFile(pMatchString, DWIN_DIR, MatchLish);	
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < MATCH_LIST_SIZE; i++)
 	{
 		NameLen = strlen(MatchLish[i].NAME);
 		if ((MatchLish[i].NAME[NameLen - 3] == *pFileSuffix++) &&	/* 后缀匹配且非文件目录 */
@@ -384,6 +383,14 @@ UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix)
 		}
 	}
 	return DWIN_ERROR;
+}
+
+UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
+{
+	UINT8 Status = 0, i = 0;
+	if(pBuf == NULL) return DWIN_ERROR;
+	Status = CH376MatchFile(pMatchString, pDir, (P_FAT_NAME)pBuf);
+	return (Status == USB_INT_SUCCESS ? DWIN_OK : DWIN_ERROR);
 }
 /*****************************************************************************
  函 数 名  : SystemUpdate

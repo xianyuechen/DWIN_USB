@@ -20,9 +20,7 @@
 #include "driver/uart/uart.h"
 #include "string.h"
 
-UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
-void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen);
-void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
+
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
 #define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)
@@ -46,6 +44,9 @@ void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
 #define TYPE_FILE						(0x55)
 #define TYPE_DIR 						(0xAA)
 
+#define MATCH_LIST_NUM					(0x28)
+#define MATCH_LIST_LEN					(0x280)
+#define MATCH_STRING_LEN				(0x10)
 #define PATH_LENGTH						(0x80)
 #ifndef BUF_SIZE
 #define BUF_SIZE						(0x1000)
@@ -147,7 +148,7 @@ void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 	ReadDGUS(AddrDgus, pData, *pDataLen);
 	for (i = *pDataLen - 1; i != 0; i--)
 	{
-		if (pData[i] == 0xFF && pData[i - 1] == 0xFF)
+		if (pData[i] == 0xFF && pData[i - 1] == 0xFF)	/* 逆序查找 找到标志位标记位置 */
 		{
 			*pDataLen = i - 1;
 			break;	
@@ -170,6 +171,7 @@ void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 *****************************************************************************/
 void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen)
 {
+	/* 写入0x00 0x00 结束标志来适配DGUS客户端显示 */
 	pData[DataLen++] = 0x00;
 	pData[DataLen++] = 0x00;
 	WriteDGUS(AddrDgus, pData, DataLen);
@@ -213,4 +215,48 @@ void AckReadOrWriteFile(void)
 	}
 	/* (4) 写入结果 */
 	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
+}
+
+void AckSearchFile(void)
+{
+	UINT8 xdata Cmd[8];
+	UINT8 xdata Path[PATH_LENGTH];
+	UINT8 xdata AimString[MATCH_STRING_LEN];
+	UINT8 xdata MatchLish[MATCH_LIST_LEN] = {0};
+	PUINT8 pMatch = NULL;
+	UINT8 Mod = 0, Status = 0, MatchNumber = 0, i = 0;
+	UINT16 PathLength = 0, AimStringLen = 0;
+	UINT32 AddrDgusPath = 0, AddrDgusAimString = 0, AddrDgusMatchResult = 0;
+
+	memset(Cmd, 0, sizeof(Cmd));
+	memset(Path, 0, PATH_LENGTH);
+	memset(AimString, 0, MATCH_STRING_LEN);
+	//memset(MatchLish, 0, MATCH_LIST_LEN);
+	/* (1) 读取控制字 */
+	ReadDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
+	Mod = Cmd[0];
+	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
+	AddrDgusAimString = (Cmd[4] << 8) | Cmd[5];
+	AddrDgusMatchResult = (Cmd[6] << 8) | Cmd[7];
+	/* (2) 读取路径名 */
+	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
+	Path[PathLength] = 0;
+	/* (3) 读取匹配字符 */
+	ReadDgusClientString(AddrDgusAimString, AimString, &AimStringLen);
+	AimString[AimStringLen] = 0;
+	/* (4) 开始匹配 */
+	Status = MatchFile(Path, AimString, MatchLish);
+	/* (5) 获取匹配数量 */
+	pMatch = MatchLish;
+	for (i = 0; i < MATCH_LIST_NUM; i++)
+	{
+		if (*pMatch == 0) break;
+		pMatch += MATCH_LIST_LEN / MATCH_LIST_NUM;
+		MatchNumber++;
+	}
+	/* (6) 发送匹配结果 */
+	Cmd[1] = MatchNumber;
+	WriteDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
+	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
+	WriteDGUS(AddrDgusMatchResult, MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
 }
