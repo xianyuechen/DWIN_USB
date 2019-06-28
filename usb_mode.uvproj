@@ -359,32 +359,37 @@
             <File>
               <FileName>app_interface.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\CH376\app_interface.c</FilePath>
+              <FilePath>.\app\app_usb\app_interface.c</FilePath>
             </File>
             <File>
               <FileName>file_sys.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\CH376\file_sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>para_port.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\CH376\para_port.c</FilePath>
-            </File>
-            <File>
-              <FileName>sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\SYSTEM\sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\SYSTEM\uart.c</FilePath>
+              <FilePath>.\app\app_usb\file_sys.c</FilePath>
             </File>
             <File>
               <FileName>dgus.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\SYSTEM\dgus.c</FilePath>
+              <FilePath>.\driver\dgus\dgus.c</FilePath>
+            </File>
+            <File>
+              <FileName>sys.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\driver\system\sys.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\driver\uart\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>para_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\driver\usb\para_port.c</FilePath>
+            </File>
+            <File>
+              <FileName>usb_dgus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\app\app_dgus\usb_dgus.c</FilePath>
             </File>
           </Files>
         </Group>
