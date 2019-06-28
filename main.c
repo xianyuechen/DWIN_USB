@@ -38,7 +38,7 @@ int main()
 	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[128];
 	UINT8 xdata Buf[BUF_SIZE];
-	UINT8 xdata Cmd[6] = {0xC0, 0x00, 0xC0, 0x40, 0xC0, 0x48};	
+	UINT8 xdata Cmd[6] = {0x55, 0x00, 0xC0, 0x40, 0xC0, 0x48};	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
@@ -46,10 +46,16 @@ int main()
 	memset(Buf, 0, sizeof(Buf));
 	strcpy(filename, "/dwin_set");
 	USBInit();
+	WriteDGUS(0x5D1, Cmd, 6);
+	//UART5_Sendbyte(Buf[0]);
+
+	/*
+	文件获取配置：
+	UINT8 xdata Cmd[6] = {0xC0, 0x00, 0xC0, 0x40, 0xC0, 0x48};
 	Buf[0] = '*';
 	WriteDGUS(0xC040, Buf, 4);
 	WriteDGUS(0x5D1, Cmd, 6);
-	//UART5_Sendbyte(Buf[0]);
+	*/
 	USBModule();
 	/*
 	ReadDGUS(0x5C4, Buf, 1);

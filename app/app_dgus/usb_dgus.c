@@ -99,7 +99,7 @@ void USBModule(void)
 		}
 		case ACK_CREATE_OR_DEL_PATH:
 		{
-			//AckCreateOrDelPath();
+			AckCreateOrDelPath();
 			break;
 		}
 		case ACK_GET_OR_SET_PATH:
@@ -264,4 +264,9 @@ void AckSearchFile(void)
 	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
 	WriteDGUS(AddrDgusMatchResult, MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
 	SendString(MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
+}
+
+void AckCreateOrDelPath(void)
+{
+
 }
