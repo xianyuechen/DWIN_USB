@@ -38,7 +38,7 @@ int main()
 	UINT32 i = 0;
 	UINT8 COUNT = 0;
 	UINT32 Addr = 0;
-	UINT32 Size = 0;
+	UINT16 Size = 0;
 	
 	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[64];
@@ -50,8 +50,8 @@ int main()
 		memset(MatchLish[i].NAME, 0, sizeof(MatchLish[i].NAME));
 	memset(filename, 0, sizeof(filename));
 	memset(Buf, 0, sizeof(Buf));
-	strcpy(filename, "/Test/cxy/ssss.c");
-	strcpy(Buf, "11111111111111111111222222222222222222222222\n\
+	strcpy(filename, "/dwin_set/t5l51.bin");
+	/*strcpy(Buf, "11111111111111111111222222222222222222222222\n\
 22222232323232323232333333333333333333232323\n\
 22222222222222222222222222222222222222222222\n\
 33333333333333333333333333333333333333333333\n\
@@ -65,7 +65,7 @@ int main()
 44444444444444444444444444444444444444444444\n\
 55555555555555555555555555555555555555555555\n\
 66666666666666666666666666666666666666666666\n\
-77777777777777777777777777777777777777777777\n");
+77777777777777777777777777777777777777777777\n");*/
 	/*strcpy(filename2, "XXXXXXXXXXXX.C");
 	for ( j = 0; filename2[j] != 0; j++ ) {
 			Buf[j*2] = filename2[j];
@@ -77,13 +77,12 @@ int main()
 	//res = CH376USBInit();
 	//SystemUpdate(FILE_T5L51_BIN);
 	USBInit();
+
+	//UART5_SendString("Start.\n");
+	//CH376ReadFile(filename, Buf, 1024, 6);
+	//CH376WriteFile(filename, Buf, strlen(Buf), WRITE_FROM_END);
 	
-	//UART5_SendString(Buf);
-	UART5_SendString("Start.\n");
-	CH376WriteFile(filename, Buf, strlen(Buf), WRITE_FROM_HEAD);
-	CH376WriteFile(filename, Buf, strlen(Buf), WRITE_FROM_END);
-	
-	UART5_SendString("End.\n");
+	//UART5_SendString("End.\n");
 	/*
 	CH376CreateLongName(filename, Buf);
 	CH376MatchFile("*", "/DWIN_SET", MatchLish);
@@ -93,7 +92,7 @@ int main()
 		UART5_SendString(MatchLish[i].NAME);
 		UART5_Sendbyte('\n');
 	} */
-	//CH376TouchDir(filename);
+	//CH376TouchDir(filename); 
 	/*
 	if (1) CreateFileOrDir(filename, 0x55);
 	else {

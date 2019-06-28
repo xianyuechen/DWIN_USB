@@ -24,7 +24,6 @@
 
 /********************************对内函数声明*********************************/
 
-UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize);
 void Delay(void);
 void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 
@@ -182,10 +181,11 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
 }
 /*****************************************************************************
  函 数 名  : CH376ReadFile
- 功能描述  : 读取文件信息
+ 功能描述  : 读取文件信息	   (读取大小比文件总大小大时，只会读取文件扇区偏移后总大小)
  输入参数  : PUINT8 pPathName  文件绝对路径名
              PUINT8 pBuf       缓冲区数据长度
-			 PUINT32 pFileSize 将返回的文件长度	 
+			 UINT16 DataLen    读取数据的长度
+			 UINT32 SectorOffset 读取的起始扇区位置	 
  输出参数  : USB_INT_SUCCESS 成功
  			 其他 出错
  修改历史  :
@@ -193,50 +193,50 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 SectorOffset)	/* 读取文件信息 */	
+UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 读取文件信息 */	
 {	/* 字符存储缓冲区pBuf 4096字节 = 8个扇区 */
 	UINT8 Status = 0;
 	UINT32 SectorCount = 0, Count = 0;
-
+	UINT32 FileSize = 0;
 	if (NULL == pPathName)	return DWIN_NULL_POINT;
 	AlphabetTransfrom(pPathName);
-	memset(pBuf, 0, BUF_SIZE);	
+	memset(pData, 0, BUF_SIZE);	
 	/* (1) 检测文件存在与否,获取文件长度和可读取扇区数 */
 	Status = CH376FileOpenPath(pPathName);	
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-	CH376SecLocate(SectorOffset);
-	*pFileSize = CH376GetFileSize() - (SectorOffset << 9);
-	
-	if (*pFileSize == 0)	return DWIN_ERROR;		/* 空文件 */
-	if (*pFileSize % DEF_SECTOR_SIZE)				/* 是否存在尾部零头数据 根据能否整除512判断 */ 
+	FileSize = CH376GetFileSize();
+	if (FileSize == 0)	return CH376Error();	/* 空文件 */
+	/* (2) 检测将读取的字节数位置是否大于文件总字节数 大于则出错直接返回 */
+	if ((SectorOffset != 0) &&(((FileSize >> 9)) < (SectorOffset - 1))) return CH376Error();
+	/* (3) 检测将读取的字节数是否大于文件偏移后的字节数 大于则直接取剩余的文件字节数作为读取数 */
+	if ((FileSize + 512) < ((SectorOffset << 9) + DataLen)) FileSize = FileSize - (SectorOffset << 9);
+	else  FileSize = (UINT32)DataLen;
+	CH376SecLocate(SectorOffset);				/* 设置扇区偏移 */
+	while (FileSize)
 	{
-		SectorCount = (*pFileSize >> 9) + 1;		/* T5L是16位 不能做32位乘除法 这里用移位操作实现 */		
+	/* (4) 设置读取扇区数 */
+		/* 是否存在尾部零头数据 存在则多读取一个扇区 */
+		if (FileSize % DEF_SECTOR_SIZE) SectorCount = (FileSize >> 9) + 1;	
+		else SectorCount = (FileSize >> 9);
+		/* 一次只能读取8个扇区 大于则取8 */
+		if (SectorCount > (BUF_SIZE / DEF_SECTOR_SIZE))
+		{
+			Count = BUF_SIZE / DEF_SECTOR_SIZE;
+			FileSize -= BUF_SIZE;
+		} 
+		else 
+		{
+			Count = SectorCount;
+			FileSize = 0;
+		}
+	/* (5) 文件数据读取 */	
+		Status = CH376SectorRead(pData, (UINT8)Count, NULL);	
+		if (Status != USB_INT_SUCCESS) return CH376Error();
 	}
-	else
-	{
-		SectorCount = (*pFileSize >> 9);
-	}
-	/* (2) 文件数据读取和发送 */
-	if (SectorCount > BUF_SIZE / DEF_SECTOR_SIZE) 
-	{
-		Count = BUF_SIZE / DEF_SECTOR_SIZE;
-	}
-	else
-	{
-		Count = SectorCount;
-	}
-	Status = CH376SectorRead(pBuf, (UINT8)Count, NULL);
-	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-			
-	if (*pFileSize > BUF_SIZE)
-	{
-		Status = SenderBuf(pBuf, FILE_T5L51_BIN, BUF_SIZE);
-		*pFileSize -= BUF_SIZE;
-	}
-	else Status = SenderBuf(pBuf, FILE_T5L51_BIN, *pFileSize);
-	
 	CH376CloseFile(0);
 	return DWIN_OK;
+	
+	
 }
 /*****************************************************************************
  函 数 名  : CH376WriteFile
@@ -251,11 +251,11 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pBuf, PUINT32 pFileSize, UINT32 Sec
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)	/* 写入文件、不存在则新建 */
+UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 写入文件、不存在则新建 */
 {
 	UINT8 xdata Buf[BUF_SIZE];					/* 字符存储缓冲区 4096字节 = 8个扇区 */
 	UINT8 xdata EndBuf[DEF_SECTOR_SIZE];
-	UINT8 Status = 0, SectorCount = 0;
+	UINT8 Status = 0, SectorCount = 0, Flag = 0;
 	PUINT8 pMid = NULL; 
 	UINT16 BufFreeLen = 0, BufSourceLen = 0, EndBufSize = 0;
 	UINT32 FileSize = 0;
@@ -264,6 +264,8 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 	memset(EndBuf, 0, DEF_SECTOR_SIZE);
 	if ((NULL == pPathName) || (NULL == pData)) return DWIN_ERROR;
 	AlphabetTransfrom(pPathName);
+	if (SectorOffset == 0) Flag = WRITE_FROM_HEAD;
+	else Flag = WRITE_FROM_END;
 	
 	/* (1) 检测文件存在与否 不存在则新建文件 */
 	Status = CH376FileOpenPath(pPathName);
@@ -271,7 +273,7 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 	{
 		CH376CreateFileOrDir(pPathName, PATH_FILE);
 		Status = CH376FileOpenPath(pPathName);
-		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
+		if (Status != USB_INT_SUCCESS) return CH376Error();
 		Flag = 	WRITE_FROM_HEAD;
 	}
 	/* (2) 根据标志变量选择写方式 从文件开始/从文件结尾 */
@@ -282,7 +284,7 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 			CH376SecLocate(0);
 			break;
 		}
-		case WRITE_FROM_END:					/* 若存在尾部数据需要先重新拼接写入 */
+		case WRITE_FROM_END:	/* 若存在尾部数据需要先重新拼接写入 */
 		{
 			FileSize = CH376GetFileSize();
 			EndBufSize = FileSize % DEF_SECTOR_SIZE;
@@ -294,7 +296,7 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 			break;
 		}
 		default:
-			return DWIN_ERROR;
+			return CH376Error();
 	}
 	FileSize += DataLen;
 	if (EndBufSize != 0)		/* 有零头数据 先与pData组合成数据包 写一次不大于4K的数据 */ 
@@ -320,7 +322,7 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 		Status = CH376SectorWrite(Buf, SectorCount, NULL);
 		memset(Buf, 0, BUF_SIZE);	/* 写完将51缓冲区清零 */
 	}
-	/* (2) 循环写数据 */
+	/* (3) 循环写数据 */
 	while(DataLen)
 	{
 		if (DataLen > BUF_SIZE)
@@ -342,13 +344,7 @@ UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT8 Flag)
 	}
 	CH376WriteVar32(VAR_FILE_SIZE, FileSize);	/* 将正确的当前文件长度写入CH376内存 */
 	Status = CH376SectorWrite(pData, 0, NULL);	/* 写0长度,实际是刷新文件长度 把缓冲区数据真正写入USB */
-	return Status;
-}
-
-UINT8 SenderBuf(PUINT8 pBuf, UINT8 FileFlag, UINT32 BufSize)
-{
-	if (FileFlag == FILE_T5L51_BIN)
-	SendString(pBuf, BufSize);
+	CH376CloseFile(0);
 	return DWIN_OK;
 }
 
@@ -468,7 +464,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	Status = FindDWINFile(FileName, Suffix);/* 查找目标文件名 */
 	if (Status != DWIN_OK) return Status;
 	pBufFile += CONTROL_SIZE;				/* 切换到数据保存区域 */
-	Status = CH376ReadFile(FileName, pBufFile, &FileSize, 0);
+	Status = CH376ReadFile(FileName, pBufFile, FileSize, 0);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 	if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
 	/* (3) 设置前512字节控制字信息 */
@@ -486,7 +482,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	{
 		AddrBuff += BUF_SIZE / 2;			/* 地址偏移:移动地址指针到写入数据的尾部 */
 		SectorOffset += 8;					/* 扇区偏移:一次偏移8个扇区(512B) 4096B */
-		Status = CH376ReadFile(FileName, pBufFile, &FileSize, SectorOffset);
+		Status = CH376ReadFile(FileName, pBufFile, FileSize, SectorOffset);
 		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 		if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
 		WriteDGUS(AddrBuff, pBufFile, (UINT16)FileSize);

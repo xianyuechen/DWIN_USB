@@ -17,7 +17,12 @@
 #include "usb_dgus.h"
 #include "app/app_usb/app_interface.h"
 #include "driver/dgus/dgus.h"
+#include "driver/uart/uart.h"
+#include "string.h"
 
+UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
+void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen);
+void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
 #define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)
@@ -41,14 +46,20 @@
 #define TYPE_FILE						(0x55)
 #define TYPE_DIR 						(0xAA)
 
-UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
-{
-	UINT8 DgusValue = 0;
-	ReadDGUS(AddrDgus, &DgusValue, sizeof(DgusValue));
-	if (DgusValue == Value) return DWIN_OK;
-	else return DWIN_ERROR;
-}
-
+#define PATH_LENGTH						(0x80)
+#ifndef BUF_SIZE
+#define BUF_SIZE						(0x1000)
+#endif				
+/*****************************************************************************
+ 函 数 名  : USBModule
+ 功能描述  : 唯一对外接口 自动扫描DGUS命令标志并执行相应操作
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月28日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void USBModule(void)
 {
 	UINT8 ACK = 0;
@@ -98,4 +109,108 @@ void USBModule(void)
 		default:
 			break;
 	}
+}
+/*****************************************************************************
+ 函 数 名  : CompareDgusRegValue
+ 功能描述  : 比较DGUS寄存器首字节的数字是否和Value相等
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 UINT8 Value		待比较的字节 	 
+ 输出参数  : DWIN_OK    数值相等
+ 			 DWIN_ERROR 数值不等
+ 修改历史  :
+ 日    期  : 2019年6月28日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
+{
+	UINT8 DgusValue = 0;
+	ReadDGUS(AddrDgus, &DgusValue, sizeof(DgusValue));
+	if (DgusValue == Value) return DWIN_OK;
+	else return DWIN_ERROR;
+}
+/*****************************************************************************
+ 函 数 名  : ReadDgusClientString
+ 功能描述  : 读取DGUS客户端的输入字符 返回去掉DGUS结束标志的字符串和字符长度 
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 PUINT8 pData		DGUS数据的接收缓冲区
+			 PUINT16 pDataLen	读取前：读取长度 读取后：DGUS数据的实际长度 	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月28日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
+{
+	UINT8 i = 0, Data1 = 0, Data2 = 0;
+	ReadDGUS(AddrDgus, pData, *pDataLen);
+	for (i = *pDataLen - 1; i != 0; i--)
+	{
+		if (pData[i] == 0xFF && pData[i - 1] == 0xFF)
+		{
+			*pDataLen = i - 1;
+			break;	
+		}
+			
+	}
+	if (i == 0) *pDataLen = strlen(pData);
+}
+/*****************************************************************************
+ 函 数 名  : WriteDgusClientString
+ 功能描述  : 向DGUS客户端写入数据 写入后的数据会带结束标志 写入的实际长度会+2
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 PUINT8 pData		DGUS数据的写入缓冲区
+			 UINT16 DataLen		写入长度 	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年6月28日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen)
+{
+	pData[DataLen++] = 0x00;
+	pData[DataLen++] = 0x00;
+	WriteDGUS(AddrDgus, pData, DataLen);
+	
+}
+
+void AckReadOrWriteFile(void)
+{
+	UINT8 xdata Cmd[8];
+	UINT8 xdata Path[PATH_LENGTH];
+	UINT8 Mod = 0, FileType = 0;
+	UINT16 PathLength = 0;
+	UINT32 AddrDgusPath = 0;
+
+	memset(Cmd, 0, sizeof(Cmd));
+	memset(Path, 0, PATH_LENGTH);
+	/* (1) 读取控制字 */
+	ReadDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
+	Mod = Cmd[0];
+	FileType = Cmd[2];
+	AddrDgusPath = (Cmd[3] << 8) | Cmd[4];
+	PathLength = PATH_LENGTH;
+	/* (2) 读取路径名 */
+	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
+	Path[PathLength] = 0;
+	/* (3) 根据控制字执行创建/删除 文件/目录的操作 */
+	switch (Mod)
+	{
+		case FLAG_CREATE:
+		{
+			SendString(Path, PathLength);
+			Cmd[1] = CreateFileOrDir(Path, FileType);
+			break;
+		}
+		case FLAG_DELETE:
+		{
+			Cmd[1] = RmFileOrDir(Path);
+		}
+		default:
+			break;
+	}
+	/* (4) 写入结果 */
+	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 }
