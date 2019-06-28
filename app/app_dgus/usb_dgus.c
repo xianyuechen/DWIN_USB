@@ -89,7 +89,7 @@ void USBModule(void)
 		}
 		case ACK_SEARCH_FILE:
 		{
-			//AckSearchFile();
+			AckSearchFile();
 			break;
 		}
 		case ACK_READ_OR_WRITE_FILE:
@@ -126,7 +126,7 @@ void USBModule(void)
 UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
 {
 	UINT8 DgusValue = 0;
-	ReadDGUS(AddrDgus, &DgusValue, sizeof(DgusValue));
+	ReadDGUS(AddrDgus, &DgusValue, 1);
 	if (DgusValue == Value) return DWIN_OK;
 	else return DWIN_ERROR;
 }
@@ -214,6 +214,7 @@ void AckReadOrWriteFile(void)
 			break;
 	}
 	/* (4) 写入结果 */
+	Cmd[0] = 0;
 	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 }
 
@@ -222,7 +223,7 @@ void AckSearchFile(void)
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
 	UINT8 xdata AimString[MATCH_STRING_LEN];
-	UINT8 xdata MatchLish[MATCH_LIST_LEN] = {0};
+	UINT8 xdata MatchLish[MATCH_LIST_LEN];
 	PUINT8 pMatch = NULL;
 	UINT8 Mod = 0, Status = 0, MatchNumber = 0, i = 0;
 	UINT16 PathLength = 0, AimStringLen = 0;
@@ -231,7 +232,9 @@ void AckSearchFile(void)
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
 	memset(AimString, 0, MATCH_STRING_LEN);
-	//memset(MatchLish, 0, MATCH_LIST_LEN);
+	memset(MatchLish, 0, MATCH_LIST_LEN);
+	PathLength = PATH_LENGTH;
+	AimStringLen = MATCH_STRING_LEN;
 	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
@@ -255,8 +258,10 @@ void AckSearchFile(void)
 		MatchNumber++;
 	}
 	/* (6) 发送匹配结果 */
+	Cmd[0] = 0;
 	Cmd[1] = MatchNumber;
 	WriteDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
 	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
 	WriteDGUS(AddrDgusMatchResult, MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
+	SendString(MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
 }
