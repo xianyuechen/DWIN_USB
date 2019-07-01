@@ -25,4 +25,5 @@ void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
 void AckCreateOrDelPath(void);
 void AckSearchFile(void);
 void AckReadOrWriteFile(void);
+void AckGetOrSetPath(void);
 #endif

@@ -180,7 +180,7 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
 	else return DWIN_ERROR;
 }
 /*****************************************************************************
- 函 数 名  : CH376ReadFile
+ 函 数 名  : ReadFile
  功能描述  : 读取文件信息	   (读取大小比文件总大小大时，只会读取文件扇区偏移后总大小)
  输入参数  : PUINT8 pPathName  文件绝对路径名
              PUINT8 pBuf       缓冲区数据长度
@@ -193,7 +193,7 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 读取文件信息 */	
+UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 读取文件信息 */	
 {	/* 字符存储缓冲区pBuf 4096字节 = 8个扇区 */
 	UINT8 Status = 0;
 	UINT32 SectorCount = 0, Count = 0;
@@ -239,7 +239,7 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 Secto
 	
 }
 /*****************************************************************************
- 函 数 名  : CH376WriteFile
+ 函 数 名  : WriteFile
  功能描述  : 入文件、不存在则新建
  输入参数  : PUINT8 pPathName  文件绝对路径名
              PUINT8 pBuf       缓冲区数据长度
@@ -251,7 +251,7 @@ UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 Secto
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 写入文件、不存在则新建 */
+UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 写入文件、不存在则新建 */
 {
 	UINT8 xdata Buf[BUF_SIZE];					/* 字符存储缓冲区 4096字节 = 8个扇区 */
 	UINT8 xdata EndBuf[DEF_SECTOR_SIZE];
@@ -474,7 +474,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	Status = FindDWINFile(FileName, Suffix);/* 查找目标文件名 */
 	if (Status != DWIN_OK) return Status;
 	pBufFile += CONTROL_SIZE;				/* 切换到数据保存区域 */
-	Status = CH376ReadFile(FileName, pBufFile, FileSize, 0);
+	Status = ReadFile(FileName, pBufFile, FileSize, 0);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 	if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
 	/* (3) 设置前512字节控制字信息 */
@@ -492,7 +492,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	{
 		AddrBuff += BUF_SIZE / 2;			/* 地址偏移:移动地址指针到写入数据的尾部 */
 		SectorOffset += 8;					/* 扇区偏移:一次偏移8个扇区(512B) 4096B */
-		Status = CH376ReadFile(FileName, pBufFile, FileSize, SectorOffset);
+		Status = ReadFile(FileName, pBufFile, FileSize, SectorOffset);
 		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 		if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
 		WriteDGUS(AddrBuff, pBufFile, (UINT16)FileSize);
@@ -536,3 +536,24 @@ void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 
 	 *pBuf++ = 0x00;
 }
 
+UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)
+{
+	UINT8 Status = 0;
+	DIR_TYPE xdata Dir;
+	UINT8 xdata FatDir[sizeof(FAT_DIR_INFO)];
+	P_FAT_DIR_INFO pFatDir = (P_FAT_DIR_INFO)FatDir;
+	memset(FatDir, 0, sizeof(FAT_DIR_INFO));
+	memset(&Dir, 0, sizeof(DIR_TYPE));
+	AlphabetTransfrom(pFilePath);
+	Status = CH376GetFileMessage(pFilePath, (P_FAT_DIR_INFO)FatDir);
+	//pDir = (P_DIR_TYPE)pBuf;
+	
+	Dir.DIR_Attr     = pFatDir -> DIR_Attr;
+	Dir.DIR_CrtTime  = pFatDir -> DIR_CrtTime;
+	Dir.DIR_CrtDate  = pFatDir -> DIR_CrtDate;
+	Dir.DIR_WrtTime  = pFatDir -> DIR_WrtTime;
+	Dir.DIR_WrtDate  = pFatDir -> DIR_WrtDate;
+	Dir.DIR_FileSize = pFatDir -> DIR_FileSize;
+	//SendString(FatDir, sizeof(FAT_DIR_INFO));
+	return Status;
+}

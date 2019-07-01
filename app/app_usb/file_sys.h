@@ -45,8 +45,8 @@ UINT8 CH376FileOpenPath(PUINT8 PathName);	/* 打开多级目录下的文件或者目录(文件夹
 UINT8 CH376FileCreatePath(PUINT8 PathName);	/* 新建多级目录下的文件,支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
 UINT8 CH376CloseFile(UINT8 param);			/* 文件关闭 */
 UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish);	/* 匹配文件 */
-UINT8 GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir);				/* 获取文件属性 */
-UINT8 SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir);				/* 修改文件属性 */
+UINT8 CH376GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir);				/* 获取文件属性 */
+UINT8 CH376SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir);				/* 修改文件属性 */
 /* 磁盘信息 */
 UINT8 CH376DiskConnect(void);				/* 检查U盘是否连接,不支持SD卡 */
 UINT8 CH376DiskMount(void);					/* 初始化磁盘并测试磁盘是否就绪 */

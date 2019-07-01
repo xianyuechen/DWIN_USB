@@ -558,30 +558,30 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹
 	return s;
 }
 
-UINT8 GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
+UINT8 CH376GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 {
 	UINT8 xdata Buf[64];
 	UINT8 Status = 0;
 	P_FAT_DIR_INFO pFile;
 	memset(Buf, 0, sizeof(Buf));
-	
 	Status = CH376FileOpenPath(pFilePath);
-	UART5_Sendbyte(Status);	
-	if (Status != USB_INT_SUCCESS) 
+	UART5_Sendbyte(Status);		
+	if (Status != USB_INT_SUCCESS && Status != ERR_OPEN_DIR) 
 	{
 		CH376CloseFile(0);
 		return DWIN_ERROR;
 	}
-	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);	
-	Status = Wait376Interrupt();
-	UART5_Sendbyte(Status);	
+	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);		
+	Status = Wait376Interrupt();	
 	if (Status != USB_INT_SUCCESS)
 	{
+		UART5_Sendbyte(0xaa);
 		CH376CloseFile(0);
 		return DWIN_ERROR;
 	}
 	CH376ReadBlock(Buf);
 	pFile = (P_FAT_DIR_INFO)Buf;
+	SendString(Buf, sizeof(40));
 	/* 数据存放小端对齐 改为大端对齐和DGUS对应 */
 	pDir -> DIR_Attr 		=	(pFile -> DIR_Attr) ;
 	pDir -> DIR_CrtTime 	=	(pFile -> DIR_CrtTime << 8) | (pFile -> DIR_CrtTime >> 8);
@@ -595,7 +595,7 @@ UINT8 GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	return DWIN_OK;
 }
 
-UINT8 SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
+UINT8 CH376SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 {
 	UINT8 xdata Buf[64];
 	UINT8 Status = 0;

@@ -50,7 +50,9 @@
 #define PATH_LENGTH						(0x80)
 #ifndef BUF_SIZE
 #define BUF_SIZE						(0x1000)
-#endif			
+#endif
+
+		
 /*****************************************************************************
  函 数 名  : USBModule
  功能描述  : 唯一对外接口 自动扫描DGUS命令标志并执行相应操作
@@ -94,7 +96,7 @@ void USBModule(void)
 		}
 		case ACK_READ_OR_WRITE_FILE:
 		{
-			//AckReadOrWriteFile();
+			AckReadOrWriteFile();
 			break;
 		}
 		case ACK_CREATE_OR_DEL_PATH:
@@ -104,7 +106,7 @@ void USBModule(void)
 		}
 		case ACK_GET_OR_SET_PATH:
 		{
-			//AckGetOrSetPath();
+			AckGetOrSetPath();
 			break;
 		}
 		default:
@@ -214,7 +216,7 @@ void AckCreateOrDelPath(void)
 			break;
 	}
 	/* (4) 写入结果 */
-	Cmd[0] = 0;
+	Cmd[0] = 0;			/* 清除标志位 */
 	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 }
 
@@ -260,7 +262,7 @@ void AckSearchFile(void)
 		MatchNumber++;
 	}
 	/* (6) 发送匹配结果 */
-	Cmd[0] = 0;
+	Cmd[0] = 0;			/* 清除标志位 */
 	Cmd[1] = MatchNumber;
 	WriteDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
 	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
@@ -269,5 +271,74 @@ void AckSearchFile(void)
 
 void AckReadOrWriteFile(void)
 {
+	UINT8 xdata Cmd[16];
+	UINT8 xdata Path[PATH_LENGTH];
+	UINT8 xdata Buf[BUF_SIZE];
+	UINT8 Mod = 0, Status = 0;
+	UINT16 PathLength = 0, ByteSize = 0;
+	UINT32 AddrDgusPath = 0, AddrDgusFileMsg = 0, SectorOffset = 0;
+	memset(Cmd, 0, sizeof(Cmd));
+	memset(Path, 0, PATH_LENGTH);
+	memset(Buf, 0, BUF_SIZE);
+	PathLength = PATH_LENGTH;
+	/* (1) 读取控制字 */
+	ReadDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
+	Mod = Cmd[0];
+	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
+	AddrDgusFileMsg = (Cmd[4] << 8) | Cmd[5];
+	SectorOffset = (Cmd[6] << 16) | (Cmd[7] << 8) | Cmd[8];
+	ByteSize = (Cmd[9] << 8) | Cmd[10];
+	/* (2) 读取文件路径 */
+	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
+	Path[PathLength] = 0;
+	Path[PathLength + 1] = 0;
+	/* (3) 根据标志位进行文件读取或者文件写入 */
+	switch (Mod)
+	{
+		case FLAG_READ:
+		{
+			UART5_SendString(Path);
+			Status = ReadFile(Path, Buf, ByteSize, SectorOffset);
+			UART5_SendString(Buf);
+			WriteDgusClientString(AddrDgusFileMsg, Buf, ByteSize);
+			if (Status == DWIN_OK) Cmd[1] = 0x00;
+			else Cmd[1] = 0xFF;
+			break;
+		}
+		case FLAG_WRITE:
+		{
+			ReadDgusClientString(AddrDgusFileMsg, Buf, &ByteSize);
+			Status = WriteFile(Path, Buf, ByteSize, SectorOffset);
+			if (Status == DWIN_OK) Cmd[1] = 0x00;
+			else Cmd[1] = 0xFF;
+			break;
+		}
+		default:
+		{
+			Cmd[1] = 0xFF;
+			break;
+		}
+	}
+	/* (6) 发送执行结果 */
+	Cmd[0] = 0x00;		/* 清除标志位 */
+	WriteDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
+}
+
+void AckGetOrSetPath(void)
+{
+	UINT8 xdata Cmd[8];
+	UINT8 xdata Path[PATH_LENGTH];
+	UINT8 xdata DirName[16];
+	UINT8 Mod = 0, Status = 0;
+	UINT16 PathLength = 0;
+	UINT32 AddrDgusPath = 0, AddrDgusDirAttr = 0;
+	memset(Cmd, 0, sizeof(Cmd));
+	memset(Path, 0, PATH_LENGTH);
+	memset(DirName, 0, sizeof(DirName));
+	PathLength = PATH_LENGTH;
+	/* (1) 读取控制字 */
+	ReadDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
+	Mod = Cmd[0];
+
 
 }

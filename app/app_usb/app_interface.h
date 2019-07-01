@@ -70,16 +70,27 @@
 
 #define PATH_FILE			(0x55)
 #define PATH_DIR			(0xAA)
+
+typedef struct _DIR_TYPE
+{
+	UINT8  DIR_Attr;
+	UINT16 DIR_CrtTime;
+	UINT16 DIR_CrtDate;
+	UINT16 DIR_WrtTime;
+	UINT16 DIR_WrtDate;
+	UINT32 DIR_FileSize;
+}DIR_TYPE, *P_DIR_TYPE;	
 /********************************对外函数声明*********************************/
 
 UINT8 USBInit(void);											/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
 UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath);
 UINT8 CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath);		/* 创建新文件或者目录 */
 UINT8 RmFileOrDir(PUINT8 pPathName);								/* 删除文件或者目录 */
-UINT8 CH376ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 读取文件信息 */
-UINT8 CH376WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 写入文件、不存在则新建 */
+UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 读取文件信息 */
+UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 写入文件、不存在则新建 */
 UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix);		/* 搜索DWIN升级文件 */
 UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
 UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
+UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 
 #endif

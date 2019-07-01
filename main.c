@@ -37,24 +37,45 @@ int main()
 	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[128];
 	UINT8 xdata Buf[BUF_SIZE];
-	UINT8 xdata Cmd[6] = {0x55, 0xC0, 0x00, 0x00, 0xC0, 0x48};	
+	UINT8 xdata Cmd[16] = {0x55, 0xC0, 0x00, 0x00, 0xC0, 0x48};	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	memset(filename, 0, sizeof(filename));
 	memset(Buf, 0, sizeof(Buf));
-	strcpy(filename, "/dwin_set/sss.s");
-	USBInit();
-	WriteDGUS(0x5C5, Cmd, 6);
+	memset(Cmd, 0, sizeof(Cmd));
+	strcpy(filename, "/AAA.BIN");
+	USBInit();/*
+	//配置：创建或者删除文件
+	Cmd[0] = 0x55;
+	Cmd[1] = 0xC0;
+	Cmd[2] = 0x00;
+	WriteDGUS(0x5C5, Cmd, 4);
+	//配置：获取文件列表
 	Buf[0] = '*';
 	Cmd[0] = 0xC0;
 	Cmd[1] = 0x00;
 	Cmd[2] = 0xC0;
 	Cmd[3] = 0x40;
+	Cmd[4] = 0xC0;
+	Cmd[5] = 0x48;
 	WriteDGUS(0xC040, Buf, 4);
 	WriteDGUS(0x5D1, Cmd, 6);
-	//UART5_Sendbyte(Buf[0]);
-
+	//配置：读写文件
+	Cmd[0] = 0xC0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xC2;
+	Cmd[3] = 0x00;
+	Cmd[4] = 0x00;
+	Cmd[5] = 0x00;
+	Cmd[6] = 0x00;
+	Cmd[7] = 0x10;
+	Cmd[8] = 0x00;
+	WriteDGUS(0x5C9, Cmd, 10);
+	USBModule();*/
+	CH376GetFileMessage(filename, (P_FAT_DIR_INFO)Buf);
+	//UART5_Sendbyte('\n');
+	//SendString(Buf, 16);
 	/*
 	文件获取配置：
 	UINT8 xdata Cmd[6] = {0xC0, 0x00, 0xC0, 0x40, 0xC0, 0x48};
@@ -62,7 +83,7 @@ int main()
 	WriteDGUS(0xC040, Buf, 4);
 	WriteDGUS(0x5D1, Cmd, 6);
 	*/
-	USBModule();
+	
 	/*
 	ReadDGUS(0x5C4, Buf, 1);
 	if (Buf[0] == 0x5A)
@@ -77,7 +98,7 @@ int main()
 	{
 		
 	}*/
-	//while(1);
+	while(1);
 	return 0;
 }
 
