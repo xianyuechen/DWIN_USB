@@ -50,7 +50,7 @@
 #define PATH_LENGTH						(0x80)
 #ifndef BUF_SIZE
 #define BUF_SIZE						(0x1000)
-#endif				
+#endif			
 /*****************************************************************************
  函 数 名  : USBModule
  功能描述  : 唯一对外接口 自动扫描DGUS命令标志并执行相应操作
@@ -145,17 +145,17 @@ UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
 void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 {
 	UINT8 i = 0, Data1 = 0, Data2 = 0;
+	UINT16 Len = 0;
+	Len = *pDataLen;
 	ReadDGUS(AddrDgus, pData, *pDataLen);
-	for (i = *pDataLen - 1; i != 0; i--)
+	for (i = 0; i < *pDataLen; i++)	/* 此处只能用正序查找 逆序会有问题 DGUS存储数据不会自动擦除 */
 	{
-		if (pData[i] == 0xFF && pData[i - 1] == 0xFF)	/* 逆序查找 找到标志位标记位置 */
+		if (pData[i] == 0xFF && pData[i + 1] == 0xFF)
 		{
-			*pDataLen = i - 1;
-			break;	
+			*pDataLen = i;
 		}
-			
 	}
-	if (i == 0) *pDataLen = strlen(pData);
+	if (*pDataLen == Len) *pDataLen = strlen(pData);
 }
 /*****************************************************************************
  函 数 名  : WriteDgusClientString
@@ -178,14 +178,13 @@ void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen)
 	
 }
 
-void AckReadOrWriteFile(void)
+void AckCreateOrDelPath(void)
 {
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
 	UINT8 Mod = 0, FileType = 0;
 	UINT16 PathLength = 0;
 	UINT32 AddrDgusPath = 0;
-
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
 	/* (1) 读取控制字 */
@@ -197,18 +196,19 @@ void AckReadOrWriteFile(void)
 	/* (2) 读取路径名 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
+	Path[PathLength + 1] = 0;
 	/* (3) 根据控制字执行创建/删除 文件/目录的操作 */
 	switch (Mod)
 	{
 		case FLAG_CREATE:
 		{
-			SendString(Path, PathLength);
 			Cmd[1] = CreateFileOrDir(Path, FileType);
 			break;
 		}
 		case FLAG_DELETE:
 		{
 			Cmd[1] = RmFileOrDir(Path);
+			break;
 		}
 		default:
 			break;
@@ -241,9 +241,11 @@ void AckSearchFile(void)
 	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
 	AddrDgusAimString = (Cmd[4] << 8) | Cmd[5];
 	AddrDgusMatchResult = (Cmd[6] << 8) | Cmd[7];
+	WriteDGUS(AddrDgusMatchResult, MatchLish, MATCH_LIST_LEN);
 	/* (2) 读取路径名 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
+	Path[PathLength + 1] = 0;
 	/* (3) 读取匹配字符 */
 	ReadDgusClientString(AddrDgusAimString, AimString, &AimStringLen);
 	AimString[AimStringLen] = 0;
@@ -263,10 +265,9 @@ void AckSearchFile(void)
 	WriteDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
 	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
 	WriteDGUS(AddrDgusMatchResult, MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
-	SendString(MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
 }
 
-void AckCreateOrDelPath(void)
+void AckReadOrWriteFile(void)
 {
 
 }

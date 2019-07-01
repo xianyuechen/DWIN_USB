@@ -24,7 +24,6 @@
 #include "driver/dgus/dgus.h"
 #include "string.h"
 #include "stdio.h"
-
 void Delay(void);
 UINT16 TIMES = 0;
 int main()
@@ -38,14 +37,21 @@ int main()
 	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[128];
 	UINT8 xdata Buf[BUF_SIZE];
-	UINT8 xdata Cmd[6] = {0x55, 0x00, 0xC0, 0x40, 0xC0, 0x48};	
+	UINT8 xdata Cmd[6] = {0x55, 0xC0, 0x00, 0x00, 0xC0, 0x48};	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	memset(filename, 0, sizeof(filename));
 	memset(Buf, 0, sizeof(Buf));
-	strcpy(filename, "/dwin_set");
+	strcpy(filename, "/dwin_set/sss.s");
 	USBInit();
+	WriteDGUS(0x5C5, Cmd, 6);
+	Buf[0] = '*';
+	Cmd[0] = 0xC0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xC0;
+	Cmd[3] = 0x40;
+	WriteDGUS(0xC040, Buf, 4);
 	WriteDGUS(0x5D1, Cmd, 6);
 	//UART5_Sendbyte(Buf[0]);
 

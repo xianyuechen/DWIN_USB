@@ -95,6 +95,7 @@ UINT8 USBInit(void)
 UINT8 CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 {
 	AlphabetTransfrom(pPathName);
+	if (TypePath != PATH_FILE && TypePath != PATH_DIR) return DWIN_ERROR;
 	return (CH376CreateFileOrDir(pPathName, TypePath));	
 }
 UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
@@ -389,6 +390,8 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
 {
 	UINT8 Status = 0, i = 0;
 	if(pBuf == NULL) return DWIN_ERROR;
+	AlphabetTransfrom(pDir);
+	AlphabetTransfrom(pMatchString);
 	Status = CH376MatchFile(pMatchString, pDir, (P_FAT_NAME)pBuf);
 	return (Status == USB_INT_SUCCESS ? DWIN_OK : DWIN_ERROR);
 }
