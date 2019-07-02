@@ -564,24 +564,22 @@ UINT8 CH376GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	UINT8 Status = 0;
 	P_FAT_DIR_INFO pFile;
 	memset(Buf, 0, sizeof(Buf));
-	Status = CH376FileOpenPath(pFilePath);
-	UART5_Sendbyte(Status);		
+	Status = CH376FileOpenPath(pFilePath);			
 	if (Status != USB_INT_SUCCESS && Status != ERR_OPEN_DIR) 
 	{
 		CH376CloseFile(0);
 		return DWIN_ERROR;
 	}
-	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);		
+	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);
+	xWriteCH376Data(0xFF);		
 	Status = Wait376Interrupt();	
 	if (Status != USB_INT_SUCCESS)
 	{
-		UART5_Sendbyte(0xaa);
 		CH376CloseFile(0);
 		return DWIN_ERROR;
 	}
 	CH376ReadBlock(Buf);
 	pFile = (P_FAT_DIR_INFO)Buf;
-	SendString(Buf, sizeof(40));
 	/* 数据存放小端对齐 改为大端对齐和DGUS对应 */
 	pDir -> DIR_Attr 		=	(pFile -> DIR_Attr) ;
 	pDir -> DIR_CrtTime 	=	(pFile -> DIR_CrtTime << 8) | (pFile -> DIR_CrtTime >> 8);

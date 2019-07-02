@@ -60,7 +60,7 @@ UINT8 USBInit(void)
 	xWriteCH376Cmd(CMD11_CHECK_EXIST);  	/* 测试单片机与CH376之间的通讯接口 */
 	xWriteCH376Data(0x65);
 	/* 通讯接口不正常,可能原因有:接口连接异常,其它设备影响(片选不唯一),串口波特率,一直在复位,晶振不工作 */ 
-	if (xReadCH376Data() != 0x9A) return ERR_USB_UNKNOWN;
+	if (xReadCH376Data() != 0x9A)  return ERR_USB_UNKNOWN;
 
 	xWriteCH376Cmd(CMD11_SET_USB_MODE);		/* 设备USB工作模式 */
 	xWriteCH376Data(USB_HOST_ON_NO_SOF);
@@ -539,21 +539,41 @@ void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)
 {
 	UINT8 Status = 0;
-	DIR_TYPE xdata Dir;
+	P_DIR_TYPE pDir = NULL;
 	UINT8 xdata FatDir[sizeof(FAT_DIR_INFO)];
 	P_FAT_DIR_INFO pFatDir = (P_FAT_DIR_INFO)FatDir;
+
 	memset(FatDir, 0, sizeof(FAT_DIR_INFO));
-	memset(&Dir, 0, sizeof(DIR_TYPE));
 	AlphabetTransfrom(pFilePath);
 	Status = CH376GetFileMessage(pFilePath, (P_FAT_DIR_INFO)FatDir);
-	//pDir = (P_DIR_TYPE)pBuf;
+	pDir = (P_DIR_TYPE)pBuf;
 	
-	Dir.DIR_Attr     = pFatDir -> DIR_Attr;
-	Dir.DIR_CrtTime  = pFatDir -> DIR_CrtTime;
-	Dir.DIR_CrtDate  = pFatDir -> DIR_CrtDate;
-	Dir.DIR_WrtTime  = pFatDir -> DIR_WrtTime;
-	Dir.DIR_WrtDate  = pFatDir -> DIR_WrtDate;
-	Dir.DIR_FileSize = pFatDir -> DIR_FileSize;
-	//SendString(FatDir, sizeof(FAT_DIR_INFO));
+	pDir -> DIR_Attr     = pFatDir -> DIR_Attr;
+	pDir -> DIR_CrtTime  = pFatDir -> DIR_CrtTime;
+	pDir -> DIR_CrtDate  = pFatDir -> DIR_CrtDate;
+	pDir -> DIR_WrtTime  = pFatDir -> DIR_WrtTime;
+	pDir -> DIR_WrtDate  = pFatDir -> DIR_WrtDate;
+	pDir -> DIR_FileSize = pFatDir -> DIR_FileSize;
 	return Status;
+}
+
+UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)
+{
+	UINT8 Status = 0;
+	P_DIR_TYPE pDir = NULL;
+	UINT8 xdata FatDir[sizeof(FAT_DIR_INFO)];
+	P_FAT_DIR_INFO pFatDir = (P_FAT_DIR_INFO)FatDir;
+
+	memset(FatDir, 0, sizeof(FAT_DIR_INFO));
+	AlphabetTransfrom(pFilePath);
+	pDir = (P_DIR_TYPE)pBuf;
+	pFatDir -> DIR_Attr     = pDir -> DIR_Attr;
+	pFatDir -> DIR_CrtTime  = pDir -> DIR_CrtTime;
+	pFatDir -> DIR_CrtDate  = pDir -> DIR_CrtDate;
+	pFatDir -> DIR_WrtTime  = pDir -> DIR_WrtTime;
+	pFatDir -> DIR_WrtDate  = pDir -> DIR_WrtDate;
+	pFatDir -> DIR_FileSize = pDir -> DIR_FileSize;
+	Status = CH376SetFileMessage(pFilePath, (P_FAT_DIR_INFO)FatDir);
+	return Status;
+
 }

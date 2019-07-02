@@ -78,7 +78,7 @@ void USBModule(void)
 		ACK = ACK_READ_OR_WRITE_FILE;
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SEARCH_FILE, FLAG_START))
 		ACK = ACK_SEARCH_FILE;
-	if (DWIN_OK == CompareDgusRegValue(ACK_SYSTEM_UP, FLAG_START))
+	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FLAG_START))
 		ACK = ACK_SYSTEM_UP;
 
 	/* (2) 应答响应 */
@@ -328,7 +328,7 @@ void AckGetOrSetPath(void)
 {
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
-	UINT8 xdata DirName[16];
+	UINT8 xdata DirName[sizeof(DIR_TYPE)];
 	UINT8 Mod = 0, Status = 0;
 	UINT16 PathLength = 0;
 	UINT32 AddrDgusPath = 0, AddrDgusDirAttr = 0;
@@ -339,6 +339,35 @@ void AckGetOrSetPath(void)
 	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
-
-
+	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
+	AddrDgusDirAttr = (Cmd[4] << 8) | Cmd[5];
+	/* (2) 读取文件路径 */
+	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
+	Path[PathLength] = 0;
+	Path[PathLength + 1] = 0;
+	/* (3) 根据标志位进行文件属性读取或者属性写入 */
+	switch(Mod)
+	{
+		case FLAG_READ:
+		{
+			Status = GetFileMessage(Path, DirName);
+			WriteDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
+			break;
+		}
+		case FLAG_WRITE:
+		{
+			ReadDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
+			Status = SetFileMessage(Path, DirName);
+			break;
+		}
+		default:
+		{
+			Status = DWIN_ERROR;
+			break;
+		}
+	}
+	/* (6) 发送执行结果 */
+	Cmd[0] = 0x00;		/* 清除标志位 */
+	Cmd[1] = Status;
+	WriteDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
 }

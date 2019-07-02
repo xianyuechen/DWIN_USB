@@ -37,15 +37,16 @@ int main()
 	UINT32 Buf_Size = 0;
 	UINT8 xdata filename[128];
 	UINT8 xdata Buf[BUF_SIZE];
-	UINT8 xdata Cmd[16] = {0x55, 0xC0, 0x00, 0x00, 0xC0, 0x48};	
+	UINT8 xdata Cmd[16] = {0x5A, 0x00, 0xC0, 0x00, 0xC1, 0x88};	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	memset(filename, 0, sizeof(filename));
 	memset(Buf, 0, sizeof(Buf));
 	memset(Cmd, 0, sizeof(Cmd));
-	strcpy(filename, "/AAA.BIN");
-	USBInit();/*
+	strcpy(filename, "/A.BIN");
+	USBInit();
+		
 	//配置：创建或者删除文件
 	Cmd[0] = 0x55;
 	Cmd[1] = 0xC0;
@@ -72,8 +73,14 @@ int main()
 	Cmd[7] = 0x10;
 	Cmd[8] = 0x00;
 	WriteDGUS(0x5C9, Cmd, 10);
-	USBModule();*/
-	CH376GetFileMessage(filename, (P_FAT_DIR_INFO)Buf);
+	//配置：文件属性获取或设置
+	Cmd[0] = 0xC0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xC1;
+	Cmd[3] = 0x88;
+	WriteDGUS(0x5C0, Cmd, 4);
+	
+	USBModule();
 	//UART5_Sendbyte('\n');
 	//SendString(Buf, 16);
 	/*
@@ -98,7 +105,7 @@ int main()
 	{
 		
 	}*/
-	while(1);
+	//while(1);
 	return 0;
 }
 

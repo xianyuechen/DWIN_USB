@@ -92,5 +92,6 @@ UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix);		/* ËÑË÷DWINÉý¼¶ÎÄ¼
 UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
 UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* ÏµÍ³Éý¼¶ */
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
+UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 
 #endif
