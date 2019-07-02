@@ -15,11 +15,6 @@
 ******************************************************************************/
 
 #include "usb_dgus.h"
-#include "app/app_usb/app_interface.h"
-#include "driver/dgus/dgus.h"
-#include "driver/uart/uart.h"
-#include "string.h"
-
 
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
@@ -28,12 +23,14 @@
 #define DGUS_ADDR_READ_OR_WRITE_FILE	(0x5C8)
 #define DGUS_ADDR_SEARCH_FILE			(0x5D0)
 #define DGUS_ADDR_SYSTEM_UP				(0x5D4)
+#define DGUS_ADDR_DISK_STATUS			(0x5D8)
 /* USB 操作动作定义 */
-#define ACK_GET_OR_SET_PATH				(0x05)
-#define ACK_CREATE_OR_DEL_PATH			(0x04)
+#define ACK_GET_OR_SET_PATH				(0x01)
+#define ACK_CREATE_OR_DEL_PATH			(0x02)
 #define ACK_READ_OR_WRITE_FILE			(0x03)
-#define ACK_SEARCH_FILE					(0x02)
-#define ACK_SYSTEM_UP					(0x01)	
+#define ACK_SEARCH_FILE					(0x04)
+#define ACK_SYSTEM_UP					(0x05)
+#define ACK_DISK_INIT					(0x06)
 /* 标志位定义 */
 #define FLAG_START						(0x5A)
 #define FLAG_END						(0x00)
@@ -43,6 +40,9 @@
 #define FLAG_DELETE						(0xA5)
 #define TYPE_FILE						(0x55)
 #define TYPE_DIR 						(0xAA)
+#define DISK_IC_ERROR					(0x00)
+#define DISK_NO_CONNECT					(0x00)
+#define DISK_NO_INIT					(0x00)
 
 #define MATCH_LIST_NUM					(0x28)
 #define MATCH_LIST_LEN					(0x280)
@@ -80,13 +80,20 @@ void USBModule(void)
 		ACK = ACK_SEARCH_FILE;
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FLAG_START))
 		ACK = ACK_SYSTEM_UP;
-
+	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_CONNECT) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_INIT))
+		ACK = ACK_DISK_INIT;
 	/* (2) 应答响应 */
 	switch (ACK)
 	{
+		case ACK_DISK_INIT:
+		{
+			AckDiskInit();
+			break;
+		}
 		case ACK_SYSTEM_UP:
 		{
-			//AckSystemUp();
+			AckSystemUp();
 			break;
 		}
 		case ACK_SEARCH_FILE:
@@ -370,4 +377,48 @@ void AckGetOrSetPath(void)
 	Cmd[0] = 0x00;		/* 清除标志位 */
 	Cmd[1] = Status;
 	WriteDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
+}
+
+void AckSystemUp(void)
+{
+	UINT8 xdata Cmd[8];
+	UINT8 FileType = 0, FileNumber = 0, Status = 0;
+	memset(Cmd, 0, sizeof(Cmd));
+	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
+	FileType = Cmd[0];
+	FileNumber = Cmd[1];
+	Status = SystemUpdate(FileType, FileNumber);
+	Cmd[0] = 0x00;
+	Cmd[1] = 0x00;
+	Cmd[2] = Status;
+	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
+}
+
+void AckDiskInit(void)
+{
+	UINT8 xdata Cmd[4];
+	memset(Cmd, 0, sizeof(Cmd));
+	
+	ReadDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));
+	
+	if (Cmd[0] == DISK_IC_ERROR)
+	{
+		Cmd[0] = CheckIC();
+		if (Cmd[0] == DISK_IC_ERROR)
+		{
+			Cmd[1] = DISK_NO_CONNECT;
+			Cmd[2] = DISK_NO_INIT;
+			goto END;
+		}
+	}
+	Cmd[1] = CheckConnect();
+	if (Cmd[1] == DISK_NO_CONNECT)
+	{
+		Cmd[2] = DISK_NO_INIT;
+		goto END;
+	}
+	if (Cmd[2] == DISK_NO_INIT)
+		Cmd[2] = CheckDiskInit();
+END:
+	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
 }

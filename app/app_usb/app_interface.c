@@ -68,17 +68,45 @@ UINT8 USBInit(void)
 		if (xReadCH376Data() == CMD_RET_SUCCESS) break;
 	if (0 == i) return ERR_USB_UNKNOWN;
 
-	while ((Status = CH376DiskConnect()) != USB_INT_SUCCESS);
-
 	for (i = 0; i < 100; i ++)				/* 检测磁盘状态 */								   
 	{
 		Delay();
 		Status = CH376DiskMount();
+		UART5_Sendbyte(Status);
 		if (USB_INT_SUCCESS == Status) break;
 		if (ERR_DISK_DISCON == Status) break;
 		if (CH376GetDiskStatus() >= DEF_DISK_MOUNTED && i >= 5) break;
 	}
 	return USB_INT_SUCCESS;
+}
+
+UINT8 CheckIC(void)
+{
+	UINT8 i = 0;
+	xWriteCH376Cmd(CMD11_CHECK_EXIST);  	/* 测试单片机与CH376之间的通讯接口 */
+	xWriteCH376Data(0x65);
+	/* 通讯接口不正常,可能原因有:接口连接异常,其它设备影响(片选不唯一),串口波特率,一直在复位,晶振不工作 */ 
+	if (xReadCH376Data() != 0x9A)  return 0;
+	else 
+	{
+		xWriteCH376Cmd(CMD11_SET_USB_MODE);		/* 设备USB工作模式 */
+		xWriteCH376Data(USB_HOST_ON_NO_SOF);
+		for (i=100; i!=0; i--) 
+			if (xReadCH376Data() == CMD_RET_SUCCESS) break;
+		return 0x5A;
+	}
+}
+
+UINT8 CheckConnect(void)
+{
+	if (CH376DiskConnect() != USB_INT_SUCCESS) return 0;
+	else return 0x5A;
+}
+
+UINT8 CheckDiskInit(void)
+{
+	if (CH376DiskMount() != USB_INT_SUCCESS) return 0;
+	else return 0x5A;
 }
 /*****************************************************************************
  函 数 名  : CreateFileOrDir
@@ -407,7 +435,7 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
+UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 {
 	UINT8 xdata Buf[BUF_SIZE + CONTROL_SIZE];
 	UINT8 xdata FileName[22];	/* /DWIN_SET/ + 长度 8 + '.' + 3 */

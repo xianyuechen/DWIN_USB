@@ -16,7 +16,11 @@
 #ifndef _USB_DGUS_H_
 #define _USB_DGUS_H_
 
+#include "app/app_usb/app_interface.h"
+#include "driver/dgus/dgus.h"
+#include "driver/uart/uart.h"
 #include "driver/system/sys.h"
+#include "string.h"
 
 void USBModule(void);
 UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
@@ -26,4 +30,7 @@ void AckCreateOrDelPath(void);
 void AckSearchFile(void);
 void AckReadOrWriteFile(void);
 void AckGetOrSetPath(void);
+void AckSystemUp(void);
+void AckDiskInit(void);
+
 #endif
