@@ -587,8 +587,8 @@ UINT8 CH376GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	pDir -> DIR_LstAccDate	=	(pFile -> DIR_LstAccDate << 8) | (pFile -> DIR_LstAccDate >> 8);
 	pDir -> DIR_WrtTime 	=	(pFile -> DIR_WrtTime << 8) | (pFile -> DIR_WrtTime >> 8);
 	pDir -> DIR_WrtDate 	=	(pFile -> DIR_WrtDate << 8) | (pFile -> DIR_WrtDate >> 8);
-	pDir -> DIR_FileSize 	= 	(pFile -> DIR_FileSize >> 24) | ((pFile -> DIR_FileSize >> 8) & 0xFF00) |
-								((pFile -> DIR_FileSize << 8) & 0xFF0000) | ((pFile -> DIR_FileSize << 24) & 0xFF000000);
+	pDir -> DIR_FileSize 	= 	((pFile -> DIR_FileSize >> 24) & 0x000000FF) | ((pFile -> DIR_FileSize >>  8) & 0x0000FF00) |
+								((pFile -> DIR_FileSize <<  8) & 0x00FF0000) | ((pFile -> DIR_FileSize << 24) & 0xFF000000);
 	CH376CloseFile(0);
 	return DWIN_OK;
 }

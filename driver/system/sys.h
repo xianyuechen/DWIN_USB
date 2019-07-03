@@ -26,7 +26,7 @@ typedef unsigned char	UINT8;
 typedef unsigned int	UINT16;
 #endif
 #ifndef UINT32
-typedef unsigned long	UINT32;
+typedef unsigned long int	UINT32;
 #endif
 #ifndef INT8
 typedef char            INT8;
@@ -35,7 +35,7 @@ typedef char            INT8;
 typedef int           	INT16;
 #endif
 #ifndef INT32
-typedef long			INT32;
+typedef long int		INT32;
 #endif
 #ifndef PUINT8
 typedef unsigned char	*PUINT8;
@@ -44,7 +44,7 @@ typedef unsigned char	*PUINT8;
 typedef unsigned int	*PUINT16;
 #endif
 #ifndef PUINT32
-typedef unsigned long	*PUINT32;
+typedef unsigned long int	*PUINT32;
 #endif
 #ifndef UINT8V
 typedef unsigned char volatile	UINT8V;

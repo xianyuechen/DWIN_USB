@@ -72,7 +72,6 @@ UINT8 USBInit(void)
 	{
 		Delay();
 		Status = CH376DiskMount();
-		UART5_Sendbyte(Status);
 		if (USB_INT_SUCCESS == Status) break;
 		if (ERR_DISK_DISCON == Status) break;
 		if (CH376GetDiskStatus() >= DEF_DISK_MOUNTED && i >= 5) break;

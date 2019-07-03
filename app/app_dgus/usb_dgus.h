@@ -21,6 +21,7 @@
 #include "driver/uart/uart.h"
 #include "driver/system/sys.h"
 #include "string.h"
+#include "stdio.h"
 
 void USBModule(void);
 UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
@@ -32,5 +33,6 @@ void AckReadOrWriteFile(void);
 void AckGetOrSetPath(void);
 void AckSystemUp(void);
 void AckDiskInit(void);
+void MesseageShow(void);
 
 #endif

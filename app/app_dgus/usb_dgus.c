@@ -66,6 +66,7 @@
 void USBModule(void)
 {
 	UINT8 ACK = 0;
+	AckDiskInit();
 	/* (1) 扫描DGUS变量标志位 确定相应应答标志 后扫描的寄存器 执行优先级高 */
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_READ) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_WRITE))
@@ -192,8 +193,7 @@ void AckCreateOrDelPath(void)
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
 	UINT8 Mod = 0, FileType = 0;
-	UINT16 PathLength = 0;
-	UINT32 AddrDgusPath = 0;
+	UINT16 PathLength = 0, AddrDgusPath = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
 	/* (1) 读取控制字 */
@@ -236,7 +236,7 @@ void AckSearchFile(void)
 	PUINT8 pMatch = NULL;
 	UINT8 Mod = 0, Status = 0, MatchNumber = 0, i = 0;
 	UINT16 PathLength = 0, AimStringLen = 0;
-	UINT32 AddrDgusPath = 0, AddrDgusAimString = 0, AddrDgusMatchResult = 0;
+	UINT16 AddrDgusPath = 0, AddrDgusAimString = 0, AddrDgusMatchResult = 0;
 
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
@@ -283,7 +283,7 @@ void AckReadOrWriteFile(void)
 	UINT8 xdata Buf[BUF_SIZE];
 	UINT8 Mod = 0, Status = 0;
 	UINT16 PathLength = 0, ByteSize = 0;
-	UINT32 AddrDgusPath = 0, AddrDgusFileMsg = 0, SectorOffset = 0;
+	UINT16 AddrDgusPath = 0, AddrDgusFileMsg = 0, SectorOffset = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
 	memset(Buf, 0, BUF_SIZE);
@@ -291,10 +291,10 @@ void AckReadOrWriteFile(void)
 	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
-	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
+	AddrDgusPath 	= (Cmd[2] << 8) | Cmd[3];
 	AddrDgusFileMsg = (Cmd[4] << 8) | Cmd[5];
-	SectorOffset = (Cmd[6] << 16) | (Cmd[7] << 8) | Cmd[8];
-	ByteSize = (Cmd[9] << 8) | Cmd[10];
+	SectorOffset 	= ((UINT32)Cmd[6] << 16) | (Cmd[7] << 8) | Cmd[8];
+	ByteSize 		= (Cmd[9] << 8) | Cmd[10];
 	/* (2) 读取文件路径 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
@@ -338,7 +338,7 @@ void AckGetOrSetPath(void)
 	UINT8 xdata DirName[sizeof(DIR_TYPE)];
 	UINT8 Mod = 0, Status = 0;
 	UINT16 PathLength = 0;
-	UINT32 AddrDgusPath = 0, AddrDgusDirAttr = 0;
+	UINT16 AddrDgusPath = 0, AddrDgusDirAttr = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
 	memset(DirName, 0, sizeof(DirName));
@@ -421,4 +421,52 @@ void AckDiskInit(void)
 		Cmd[2] = CheckDiskInit();
 END:
 	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
+}
+
+void MesseageShow(void)
+{
+	UINT8 xdata Ms[13], String[18];
+	UINT16 DIR_CrtTime = 0, DIR_CrtDate = 0, DIR_WrtTime = 0, DIR_WrtDate = 0;
+	UINT16 Hour = 0, Min = 0, Sec = 0, Year = 0, Month = 0, Day = 0;
+	UINT32 DIR_FileSize = 0;
+	
+	memset(Ms, 0, sizeof(Ms));
+	memset(String, 0, sizeof(String));
+	ReadDGUS(0xC188, Ms, sizeof(Ms));
+	DIR_CrtTime  = (Ms[1] << 8) | Ms[2];
+	DIR_CrtDate  = (Ms[3] << 8) | Ms[4];
+	DIR_WrtTime  = (Ms[5] << 8) | Ms[6];
+	DIR_WrtDate  = (Ms[7] << 8) | Ms[8];
+	DIR_FileSize = ((UINT32)Ms[9] << 24) | ((UINT32)Ms[10] << 16) | ((UINT16)Ms[11] << 8) | (Ms[12]);
+	
+	Hour = (DIR_CrtTime & 0xF800) >> 11;
+	Min  = (DIR_CrtTime & 0x07E0) >> 5;
+	Sec  = (DIR_CrtTime & 0x001F) << 1;
+	sprintf(String, "%2d : %2d : %2d", Hour, Min, Sec);
+	WriteDGUS(0xC1B0, String, sizeof(String));
+	memset(String, 0, sizeof(String));
+	
+	Year  = ((DIR_CrtDate & 0xFE00) >> 9) + 1980;
+	Month = (DIR_CrtDate & 0x01E0) >> 5;
+	Day   = DIR_CrtDate & 0x001F;
+	sprintf(String, "%4d - %2d - %2d", Year, Month, Day);
+	WriteDGUS(0xC1A0, String, sizeof(String));
+	memset(String, 0, sizeof(String));
+	
+	Hour = (DIR_WrtTime & 0xF800) >> 11;
+	Min  = (DIR_WrtTime & 0x07E0) >> 5;
+	Sec  = (DIR_WrtTime & 0x001F) << 1;
+	sprintf(String, "%2d : %2d : %2d", Hour, Min, Sec);
+	WriteDGUS(0xC1D0, String, sizeof(String));
+	memset(String, 0, sizeof(String));
+	
+	Year  = ((DIR_WrtDate & 0xFE00) >> 9) + 1980;
+	Month = (DIR_WrtDate & 0x01E0) >> 5;
+	Day   = DIR_WrtDate & 0x001F;
+	sprintf(String, "%4d - %2d - %2d", Year, Month, Day);
+	WriteDGUS(0xC1C0, String, sizeof(String));
+	memset(String, 0, sizeof(String));
+	
+	sprintf(String, "%lu Byte", DIR_FileSize);
+	WriteDGUS(0xC1E0, String, sizeof(String));
 }
