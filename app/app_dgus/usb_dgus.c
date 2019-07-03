@@ -79,7 +79,12 @@ void USBModule(void)
 		ACK = ACK_READ_OR_WRITE_FILE;
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SEARCH_FILE, FLAG_START))
 		ACK = ACK_SEARCH_FILE;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FLAG_START))
+	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_ALL) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_T5L51_BIN) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_DWINOS_BIN) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_LIB) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_BIN) ||
+		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_ICL))
 		ACK = ACK_SYSTEM_UP;
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_CONNECT) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_INIT))
@@ -437,7 +442,7 @@ void MesseageShow(void)
 	DIR_CrtDate  = (Ms[3] << 8) | Ms[4];
 	DIR_WrtTime  = (Ms[5] << 8) | Ms[6];
 	DIR_WrtDate  = (Ms[7] << 8) | Ms[8];
-	DIR_FileSize = ((UINT32)Ms[9] << 24) | ((UINT32)Ms[10] << 16) | ((UINT16)Ms[11] << 8) | (Ms[12]);
+	DIR_FileSize = ((UINT32)Ms[9] << 24) | ((UINT32)Ms[10] << 16) | (Ms[11] << 8) | (Ms[12]);
 	
 	Hour = (DIR_CrtTime & 0xF800) >> 11;
 	Min  = (DIR_CrtTime & 0x07E0) >> 5;

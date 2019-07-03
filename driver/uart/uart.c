@@ -85,3 +85,11 @@ void SendString(PUINT8 pBuf, UINT32 BUFFSIZE)
 		UART5_Sendbyte(*pBuf++);	
 	}
 }
+
+void Send32Byte(UINT32 Data)
+{
+	UART5_Sendbyte(Data >> 24);
+	UART5_Sendbyte(Data >> 16);
+	UART5_Sendbyte(Data >> 8);
+	UART5_Sendbyte(Data);
+}

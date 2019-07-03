@@ -26,22 +26,23 @@
 #include "stdio.h"
 void Delay(void);
 UINT16 TIMES = 0;
-int main()
+void main()
 {
 	UINT8 j = 0;
 	UINT32 i = 0;
-	UINT8 COUNT = 0;
+	PUINT8 pCOUNT = NULL;
 	UINT32 Addr = 0;
 	UINT16 Size = 0;
 	
 	UINT32 Buf_Size = 0;
-	UINT8 xdata filename[128];
+	UINT8 xdata filename[480];
 	UINT8 xdata Cmd[16];	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	memset(filename, 0, sizeof(filename));
-	memset(Cmd, 0, sizeof(Cmd));	
+	memset(Cmd, 0, sizeof(Cmd));
+	//SystemUpdate(0, 0);
 	//配置：创建或者删除文件
 	Cmd[0] = 0x55;
 	Cmd[1] = 0xC0;
@@ -76,7 +77,9 @@ int main()
 	WriteDGUS(0x5C1, Cmd, 4);
 	USBModule();
 	MesseageShow();
-	return 0;
+	SystemUpdate(4, 0);
+	//SysUpGetDWINFile(filename);
+	while(1);
 }
 
 void T0_ISR_PC(void)	interrupt 1

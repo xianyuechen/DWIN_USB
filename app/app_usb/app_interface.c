@@ -24,7 +24,6 @@
 /********************************对内函数声明*********************************/
 
 void Delay(void);
-void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 
 /*****************************************************************************
  函 数 名  : Delay	软件延时约 0.6ms
@@ -375,44 +374,6 @@ UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOff
 	return DWIN_OK;
 }
 
-/*****************************************************************************
- 函 数 名  : FindDWINFile
- 功能描述  : 搜索DWIN升级文件
- 输入参数  : PUINT8 MatchString  将返回 匹配文件的绝对路径
-             PUINT8 pFileSuffix  将返回 匹配文件的后缀	 
- 输出参数  : DWIN_OK 成功
- 			 其他 出错
- 修改历史  :
- 日    期  : 2019年6月21日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-UINT8 FindDWINFile(PUINT8 pMatchString, PUINT8 pFileSuffix)
-{
-	FAT_NAME xdata MatchLish[MATCH_LIST_SIZE];
-	UINT8 Status = 0, i = 0;
-	UINT16 NameLen = 0;
-	if (strlen(pFileSuffix) != 3) return DWIN_ERROR;				/* 检测后缀名是否合法 */
-	Status = CH376MatchFile(pMatchString, DWIN_DIR, MatchLish);	
-	for (i = 0; i < MATCH_LIST_SIZE; i++)
-	{
-		NameLen = strlen(MatchLish[i].NAME);
-		if ((MatchLish[i].NAME[NameLen - 3] == *pFileSuffix++) &&	/* 后缀匹配且非文件目录 */
-			(MatchLish[i].NAME[NameLen - 2] == *pFileSuffix++) &&
-			(MatchLish[i].NAME[NameLen - 1] == *pFileSuffix)   &&
-			(MatchLish[i].Attr != ATTR_VOLUME_ID) &&
-			(MatchLish[i].Attr != ATTR_DIRECTORY))
-		{
-			memset(pMatchString, 0, strlen(pMatchString));
-			strcpy(pMatchString, DWIN_DIR);
-			strcat(pMatchString, "/");
-			strcat(pMatchString, MatchLish[i].NAME);				/* 把找到的绝对路径写入MatchString */
-			return DWIN_OK;
-		}
-	}
-	return DWIN_ERROR;
-}
-
 UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
 {
 	UINT8 Status = 0, i = 0;
@@ -422,145 +383,137 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
 	Status = CH376MatchFile(pMatchString, pDir, (P_FAT_NAME)pBuf);
 	return (Status == USB_INT_SUCCESS ? DWIN_OK : DWIN_ERROR);
 }
-/*****************************************************************************
- 函 数 名  : SystemUpdate
- 功能描述  : 系统升级
- 输入参数  : UINT8 FileType    升级文件类型
-             UINT16 FileNumber 升级文件的编号	 
- 输出参数  : DWIN_OK 成功
-             其他    失败
- 修改历史  :
- 日    期  : 2019年6月21日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
+
+void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
 {
-	UINT8 xdata Buf[BUF_SIZE + CONTROL_SIZE];
-	UINT8 xdata FileName[22];	/* /DWIN_SET/ + 长度 8 + '.' + 3 */
-	UINT8 xdata Suffix[SUFFIX_SIZE];
-	UINT8 Status = 0;
-	UINT8 UpSpace = 0;
-	PUINT8 pBufFile = Buf;
-	UINT32 FileAddr = 0;
-	UINT32 AddrBuff = 0;
-	UINT32 FileSize = 0;
-	UINT32 SectorOffset = 0;	
-	memset(Buf, 0, sizeof(Buf));
-	memset(FileName, 0, sizeof(FileName));
-	memset(Suffix, 0, SUFFIX_SIZE);
-	/* (1) 根据文件类型 设定相关参数 */
 	switch (FileType)
 	{
 		case FILE_T5L51_BIN:
 		{
-			strcpy(FileName, "T5L51*");
-			strcpy(Suffix, "BIN");
-			FileAddr = ADDR_T5L51_BIN;
-			UpSpace = SPACE_1;
+			strcpy(pString, "T5L51");
+			pString += 6;
+			strcpy(pString, ".BIN");
+			*pFileAddr = ADDR_T5L51_BIN;
+			*pUpSpace = SPACE_1;
 			break;
 		}
 
 		case FILE_DWINOS_BIN:
 		{
-			strcpy(FileName, "DWINOS*");
-			strcpy(Suffix, "BIN");
-			FileAddr = ADDR_DWIN_OS;
-			UpSpace = SPACE_1;
+			strcpy(pString, "DWINOS");
+			pString += 6;
+			strcpy(pString, ".BIN");
+			*pFileAddr = ADDR_DWIN_OS;
+			*pUpSpace = SPACE_1;
 			break;
 		}
 
 		case FILE_XXX_LIB:
 		{
-			sprintf(FileName, "%d*", FileNumber);
-			strcpy(Suffix, "LIB");
-			FileAddr = LIB(FileNumber);
-			UpSpace = SPACE_1;
+			sprintf(pString, "%d", (UINT16)FileNumber);
+			pString += 6;
+			strcpy(pString, ".LIB");
+			*pFileAddr = LIB((UINT32)FileNumber);
+			*pUpSpace = SPACE_1;
 			break;
 		}
 		case FILE_XXX_BIN:
 		{
-			sprintf(FileName, "%d*", FileNumber);
-			strcpy(Suffix, "BIN");
-			FileAddr = FONT(FileNumber);
-			UpSpace = SPACE_2;
+			sprintf(pString, "%d", (UINT16)FileNumber);
+			pString += 6;
+			strcpy(pString, "BIN");
+			pString += 6;
+			strcpy(pString, "DZK");
+			pString += 6;
+			strcpy(pString, "HZK");
+			*pFileAddr = FONT((UINT32)FileNumber);
+			*pUpSpace = SPACE_2;
 			break;
 		}
 		case FILE_XXX_ICL:
 		{
-			sprintf(FileName, "%d*", FileNumber);
-			strcpy(Suffix, "ICL");
-			FileAddr = ICL(FileNumber);
-			UpSpace = SPACE_2;
+			sprintf(pString, "%d", (UINT16)FileNumber);
+			pString += 6;
+			strcpy(pString, "ICL");
+			*pFileAddr = ICL((UINT32)FileNumber);
+			*pUpSpace = SPACE_2;
 			break;
 		}
 		default:
-			return DWIN_ERROR;
+			break;
 	}
-	/* (2) 查找文件 存在则读取文件信息到后4K缓冲区 */
-	Status = FindDWINFile(FileName, Suffix);/* 查找目标文件名 */
-	if (Status != DWIN_OK) return Status;
-	pBufFile += CONTROL_SIZE;				/* 切换到数据保存区域 */
-	Status = ReadFile(FileName, pBufFile, FileSize, 0);
-	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-	if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
-	/* (3) 设置前512字节控制字信息 */
-	ReadDGUS(ADDR_UP_CONFIG, Buf, 4);			
-	AddrBuff = (Buf[3] << 8) & 0xFF00;		/* 获取升级DGUS地址 低8bit是0x00 */
-	ReadDGUS(AddrBuff, Buf, 1);
-	if (Buf[0] == FLAG_NO_EN) 
-	{										/* 设置更新参数 */
-		UpdateSet(Buf, FLAG_NO_EN, UpSpace, FileAddr, (UINT16)FileSize);
-	}
-	else return DWIN_ERROR;										
-	WriteDGUS(AddrBuff, Buf, (UINT16)FileSize + CONTROL_SIZE);	/* 首次写入不启动升级 防止升级出错 */
-	AddrBuff += CONTROL_SIZE / 2;			/* 移动地址指针到写入控制字的尾部 */
-	while (FileSize == BUF_SIZE)				/* 文件还未读取完毕 */
+}
+
+UINT8 SysUpGetDWINFile(PUINT8 pMatchList)
+{
+	UINT8 Status = 0;
+	UINT8 i = 0;
+	Status = CH376MatchFile("*", DWIN_DIR, (P_FAT_NAME)pMatchList);
+	if (Status == ERR_MISS_FILE) return DWIN_OK; 
+	else return DWIN_ERROR;
+}
+
+UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize)
+{
+	UINT8 i = 0;
+	PUINT8 pNow = pDest;
+	for (; *pSource != 0; pSource += sizeof(FAT_NAME))
 	{
-		AddrBuff += BUF_SIZE / 2;			/* 地址偏移:移动地址指针到写入数据的尾部 */
-		SectorOffset += 8;					/* 扇区偏移:一次偏移8个扇区(512B) 4096B */
-		Status = ReadFile(FileName, pBufFile, FileSize, SectorOffset);
-		if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
-		if (FileSize > BUF_SIZE) FileSize = BUF_SIZE;
-		WriteDGUS(AddrBuff, pBufFile, (UINT16)FileSize);
-	}	
-	ReadDGUS(AddrBuff, Buf, 1);
-	/* (4) 首位写入升级标志 开启升级 */
-	if (Buf[0] == FLAG_NO_EN)
-	{
-		Buf[0] = FLAG_EN;					/* 启动升级 */
-		WriteDGUS(AddrBuff, Buf, 4);
+		i = 0;
+		for (pNow = pDest; *pNow != 0; pNow += 6)
+		{
+			if (i == 0 && strstr(pSource, pNow) == NULL) break;
+			else i++;
+			if (i == 2)
+			{
+				sprintf(pResult, "%s/%s", DWIN_DIR, pSource);
+				pSource += sizeof((FAT_NAME *)0);
+				*pFileSize = ((UINT32)*pSource++ << 24) | ((UINT32)*pSource++ << 16) |
+							 ((UINT32)*pSource++ << 8) | *pSource;	
+				return DWIN_OK;
+			}
+		}
 	}
-	//SendString(Buf, BUF_SIZE + CONTROL_SIZE);
+	return DWIN_ERROR;
+}
+
+void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
+{
+	*pBuf++ = Flag_EN;					/* 升级标志 */
+	*pBuf++ = UpSpace;					/* 升级空间选择 */
+	*pBuf++ = (UINT8)(UpAddr >> 24);	/* 远程升级目标地址 */
+	*pBuf++ = (UINT8)(UpAddr >> 16);
+	*pBuf++ = (UINT8)(UpAddr >> 8);
+	*pBuf++ = (UINT8)(UpAddr);
+	*pBuf++ = (UINT8)(FileSize >> 8);	/* 数据字节长度 0x0001 - 0x0FFF */
+	*pBuf++ = (UINT8)(FileSize); 		
+	*pBuf++ = 0x00;					/* 默认不进行CRC校验 */
+	*pBuf++ = 0x00;
+}
+	
+UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
+{
+	UINT8 xdata String[24]; //4 * 6
+	UINT8 xdata FilePath[22];
+	UINT8 xdata FileList[sizeof(FAT_NAME) * DIR_FILE_MAX];
+	UINT8 UpSpace = 0;
+	UINT32 FileAddr = 0, FileSize = 0, AddrDgusPack = 0;
+	memset(String, 0, sizeof(String));
+	memset(FilePath, 0, sizeof(FilePath));
+	memset(FileList, 0, sizeof(FileList));
+	
+	ReadDGUS(ADDR_UP_CONFIG, FilePath, 4);
+	AddrDgusPack = ((UINT16)FilePath[3] << 8) | 0x00;
+	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &FileAddr, String);
+	SysUpGetDWINFile(FileList);
+	SysUpFileMatch(FileList, String, FilePath, &FileSize);
+	
 	return DWIN_OK;
 }
-/*****************************************************************************
- 函 数 名  : UpdateSet
- 功能描述  : 更新控制字设置
- 输入参数  : PUINT8	pBuf		控制字BUF缓冲区
-             UINT8	Flag_EN		升级使能标志位
-			 UINT8	UpSpace		升级空间
-			 UINT32	UpAddr		文件升级地址	
-			 UINT16	FileSize	升级文件大小 
- 输出参数  : DWIN_OK 成功
-             其他    失败
- 修改历史  :
- 日    期  : 2019年6月21日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-void UpdateSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
+
+void SysUpFileSend(PUINT8 pPath, UINT32 AddrDgusPck, UINT32 FileSize)
 {
-	 *pBuf++ = Flag_EN;					/* 升级标志 */
-	 *pBuf++ = UpSpace;					/* 升级空间选择 */
-	 *pBuf++ = (UINT8)(UpAddr >> 24);	/* 远程升级目标地址 */
-	 *pBuf++ = (UINT8)(UpAddr >> 16);
-	 *pBuf++ = (UINT8)(UpAddr >> 8);
-	 *pBuf++ = (UINT8)(UpAddr);
-	 *pBuf++ = (UINT8)(FileSize >> 8);	/* 数据字节长度 0x0001 - 0x0FFF */
-	 *pBuf++ = (UINT8)(FileSize); 		
-	 *pBuf++ = 0x00;					/* 默认不进行CRC校验 */
-	 *pBuf++ = 0x00;
+	
 }
 
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)

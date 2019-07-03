@@ -549,7 +549,7 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹
 				}
 			}
 			*pNameBuf = 0;
-			MatchLish -> Attr = pDir -> DIR_Attr;
+			MatchLish -> FILE_SIZE = pDir -> DIR_FileSize;
 			MatchLish++;
 		}
 		else if (ERR_MISS_FILE == s) break;		/* 没有找到更多的匹配文件 */ 		

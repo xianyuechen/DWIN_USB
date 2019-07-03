@@ -23,5 +23,6 @@ void UART5_Init(void);								/* 串口5初始化 1ms定时器 */
 void UART5_Sendbyte(UINT8 dat);						/* 串口5发送单个字节 */
 void UART5_SendString(PUINT8 String);				/* 串口5发送字符串, '\0'自动截至 */
 void SendString(PUINT8 String, UINT32 BUFFSIZE);	/* 串口5发送指定长度的缓冲数据 */
+void Send32Byte(UINT32 Data);
 
 #endif
