@@ -77,9 +77,9 @@ void main()
 	WriteDGUS(0x5C1, Cmd, 4);
 	USBModule();
 	MesseageShow();
-	SystemUpdate(4, 0);
-	//SysUpGetDWINFile(filename);
-	while(1);
+	//SystemUpdate(1, 32);
+	//SysUpWaitOsFinishRead();
+	//while(1);
 }
 
 void T0_ISR_PC(void)	interrupt 1

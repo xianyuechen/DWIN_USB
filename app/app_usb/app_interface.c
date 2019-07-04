@@ -421,11 +421,11 @@ void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32
 		{
 			sprintf(pString, "%d", (UINT16)FileNumber);
 			pString += 6;
-			strcpy(pString, "BIN");
+			strcpy(pString, ".BIN");
 			pString += 6;
-			strcpy(pString, "DZK");
+			strcpy(pString, ".DZK");
 			pString += 6;
-			strcpy(pString, "HZK");
+			strcpy(pString, ".HZK");
 			*pFileAddr = FONT((UINT32)FileNumber);
 			*pUpSpace = SPACE_2;
 			break;
@@ -434,7 +434,7 @@ void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32
 		{
 			sprintf(pString, "%d", (UINT16)FileNumber);
 			pString += 6;
-			strcpy(pString, "ICL");
+			strcpy(pString, ".ICL");
 			*pFileAddr = ICL((UINT32)FileNumber);
 			*pUpSpace = SPACE_2;
 			break;
@@ -457,24 +457,34 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
 {
 	UINT8 i = 0;
 	PUINT8 pNow = pDest;
+	PUINT8 pStatus = NULL;
 	for (; *pSource != 0; pSource += sizeof(FAT_NAME))
 	{
 		i = 0;
 		for (pNow = pDest; *pNow != 0; pNow += 6)
 		{
-			if (i == 0 && strstr(pSource, pNow) == NULL) break;
-			else i++;
+			pStatus = strstr(pSource, pNow);
+			if (pStatus != NULL) i++;
+			if (i == 0 && pStatus == NULL) break;
 			if (i == 2)
 			{
 				sprintf(pResult, "%s/%s", DWIN_DIR, pSource);
-				pSource += sizeof((FAT_NAME *)0);
-				*pFileSize = ((UINT32)*pSource++ << 24) | ((UINT32)*pSource++ << 16) |
-							 ((UINT32)*pSource++ << 8) | *pSource;	
+				pSource += sizeof(((FAT_NAME *)0) -> NAME);
+				*pFileSize = *pFileSize | *pSource++;
+				*pFileSize = *pFileSize | ((UINT16)(*pSource++) << 8);
+				*pFileSize = *pFileSize | ((UINT32)(*pSource++) << 16);
+				*pFileSize = *pFileSize | ((UINT32)(*pSource) << 24);	
 				return DWIN_OK;
 			}
 		}
 	}
 	return DWIN_ERROR;
+}
+
+void SysUpWaitOsFinishRead(void)
+{
+	UINT8 Flag = 0;
+	while(Flag != FLAG_EN) ReadDGUS(ADDR_UP_CONFIG, &Flag, 1);
 }
 
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
@@ -488,32 +498,88 @@ void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT
 	*pBuf++ = (UINT8)(FileSize >> 8);	/* 数据字节长度 0x0001 - 0x0FFF */
 	*pBuf++ = (UINT8)(FileSize); 		
 	*pBuf++ = 0x00;					/* 默认不进行CRC校验 */
-	*pBuf++ = 0x00;
+	*pBuf = 0x00;
 }
+
+void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
+{
+	UINT8 xdata BufHead[CONTROL_SIZE];
+	UINT8 xdata BUFMesg[BUF_SIZE];
+	UINT8 Count = 0;
+	UINT16 PackSize = 0, FirstPackSize = 0;
+	UINT32 SectorOffset = 0, FirstAddrFileSave = 0;
+	UINT32 AddrDgusPackHead = 0, AddrDgusPackMesg = 0;
 	
+	memset(BufHead, 0, sizeof(BufHead));
+	memset(BUFMesg, 0, sizeof(BUFMesg));
+	AddrDgusPackHead = AddrDgusPck;
+	AddrDgusPackMesg = AddrDgusPck + (CONTROL_SIZE / 2);
+	if(FileSize > BUF_SIZE) FirstPackSize = BUF_SIZE;
+	else 
+	{
+		FirstPackSize = (UINT16)FileSize;
+		FileSize = 0;
+	}
+	FirstAddrFileSave = AddrFileSave;
+	/* Send Pack 1 */
+	while(FileSize)
+	{
+		if (FileSize > BUF_SIZE) 
+		{
+			PackSize = BUF_SIZE;
+			FileSize -= BUF_SIZE;
+		}
+		else
+		{
+			PackSize = (UINT16)FileSize;
+			FileSize = 0;
+		}
+		
+		if (Count == 0) 
+		{
+			SysUpPcakSet(BufHead, FLAG_NO_EN, 0, 0, 0);
+			Count = 1;
+		}
+		else SysUpPcakSet(BufHead, FLAG_EN, UpSpace, AddrFileSave, PackSize);
+		ReadFile(pPath, BUFMesg, PackSize, SectorOffset);
+		SysUpWaitOsFinishRead();
+		WriteDGUS(AddrDgusPackHead, BufHead, CONTROL_SIZE);
+		WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
+		
+		memset(BUFMesg, 0, sizeof(BUFMesg));
+		AddrFileSave += BUF_SIZE;		
+		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
+	}
+	SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, FirstAddrFileSave, FirstPackSize);
+	ReadFile(pPath, BUFMesg, FirstPackSize, 0);
+	SysUpWaitOsFinishRead();
+	WriteDGUS(AddrDgusPackHead, BufHead, CONTROL_SIZE);
+	WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
+	
+	BufHead[0] = FLAG_EN;
+	SysUpWaitOsFinishRead();
+	WriteDGUS(AddrDgusPackHead, BufHead, 1);
+}
+
 UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 {
 	UINT8 xdata String[24]; //4 * 6
 	UINT8 xdata FilePath[22];
 	UINT8 xdata FileList[sizeof(FAT_NAME) * DIR_FILE_MAX];
 	UINT8 UpSpace = 0;
-	UINT32 FileAddr = 0, FileSize = 0, AddrDgusPack = 0;
+	UINT32 AddrFile = 0, FileSize = 0, AddrDgusPack = 0;
 	memset(String, 0, sizeof(String));
 	memset(FilePath, 0, sizeof(FilePath));
 	memset(FileList, 0, sizeof(FileList));
 	
 	ReadDGUS(ADDR_UP_CONFIG, FilePath, 4);
 	AddrDgusPack = ((UINT16)FilePath[3] << 8) | 0x00;
-	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &FileAddr, String);
+	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
 	SysUpGetDWINFile(FileList);
 	SysUpFileMatch(FileList, String, FilePath, &FileSize);
-	
+	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
+	UART5_SendString("****E N D****\n");
 	return DWIN_OK;
-}
-
-void SysUpFileSend(PUINT8 pPath, UINT32 AddrDgusPck, UINT32 FileSize)
-{
-	
 }
 
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)

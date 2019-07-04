@@ -45,7 +45,7 @@
 #define DISK_NO_INIT					(0x00)
 
 #define MATCH_LIST_NUM					(0x28)
-#define MATCH_LIST_LEN					(0x280)
+#define MATCH_LIST_LEN					(0x320)
 #define MATCH_STRING_LEN				(0x10)
 #define PATH_LENGTH						(0x80)
 #ifndef BUF_SIZE
@@ -309,7 +309,6 @@ void AckReadOrWriteFile(void)
 	{
 		case FLAG_READ:
 		{
-			UART5_SendString(Path);
 			Status = ReadFile(Path, Buf, ByteSize, SectorOffset);
 			UART5_SendString(Buf);
 			WriteDgusClientString(AddrDgusFileMsg, Buf, ByteSize);
