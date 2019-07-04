@@ -100,5 +100,6 @@ UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
-void SysUpWaitOsFinishRead(void);
+void SysUpWaitOsFinishRead(UINT32 AddrDgus);
+
 #endif

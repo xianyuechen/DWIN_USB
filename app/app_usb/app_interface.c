@@ -481,10 +481,10 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
 	return DWIN_ERROR;
 }
 
-void SysUpWaitOsFinishRead(void)
+void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
-	UINT8 Flag = 0;
-	while(Flag != FLAG_EN) ReadDGUS(ADDR_UP_CONFIG, &Flag, 1);
+	UINT8 Flag = 0x5a;
+	while(Flag == FLAG_EN) {ReadDGUS(AddrDgus, &Flag, 1);UART5_Sendbyte(Flag);}
 }
 
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
@@ -509,7 +509,6 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 	UINT16 PackSize = 0, FirstPackSize = 0;
 	UINT32 SectorOffset = 0, FirstAddrFileSave = 0;
 	UINT32 AddrDgusPackHead = 0, AddrDgusPackMesg = 0;
-	
 	memset(BufHead, 0, sizeof(BufHead));
 	memset(BUFMesg, 0, sizeof(BUFMesg));
 	AddrDgusPackHead = AddrDgusPck;
@@ -542,7 +541,7 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 		}
 		else SysUpPcakSet(BufHead, FLAG_EN, UpSpace, AddrFileSave, PackSize);
 		ReadFile(pPath, BUFMesg, PackSize, SectorOffset);
-		SysUpWaitOsFinishRead();
+		SysUpWaitOsFinishRead(AddrDgusPackHead);
 		WriteDGUS(AddrDgusPackHead, BufHead, CONTROL_SIZE);
 		WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
 		
@@ -552,12 +551,13 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 	}
 	SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, FirstAddrFileSave, FirstPackSize);
 	ReadFile(pPath, BUFMesg, FirstPackSize, 0);
-	SysUpWaitOsFinishRead();
-	WriteDGUS(AddrDgusPackHead, BufHead, CONTROL_SIZE);
-	WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
+	SysUpWaitOsFinishRead(AddrDgusPackHead);
+	
+	WriteDGUS(AddrDgusPackMesg, BUFMesg, FirstPackSize);
+	WriteDGUS(AddrDgusPackHead, BufHead, 10);
 	
 	BufHead[0] = FLAG_EN;
-	SysUpWaitOsFinishRead();
+	SysUpWaitOsFinishRead(AddrDgusPackHead);
 	WriteDGUS(AddrDgusPackHead, BufHead, 1);
 }
 
@@ -578,7 +578,6 @@ UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 	SysUpGetDWINFile(FileList);
 	SysUpFileMatch(FileList, String, FilePath, &FileSize);
 	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
-	UART5_SendString("****E N D****\n");
 	return DWIN_OK;
 }
 
