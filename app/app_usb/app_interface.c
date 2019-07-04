@@ -484,7 +484,7 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
 void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
 	UINT8 Flag = 0x5a;
-	while(Flag == FLAG_EN) {ReadDGUS(AddrDgus, &Flag, 1);UART5_Sendbyte(Flag);}
+	while(Flag == FLAG_EN) ReadDGUS(AddrDgus, &Flag, 1);
 }
 
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
@@ -497,7 +497,7 @@ void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT
 	*pBuf++ = (UINT8)(UpAddr);
 	*pBuf++ = (UINT8)(FileSize >> 8);	/* 数据字节长度 0x0001 - 0x0FFF */
 	*pBuf++ = (UINT8)(FileSize); 		
-	*pBuf++ = 0x00;					/* 默认不进行CRC校验 */
+	*pBuf++ = 0x00;						/* 默认不进行CRC校验 */
 	*pBuf = 0x00;
 }
 
@@ -542,8 +542,8 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 		else SysUpPcakSet(BufHead, FLAG_EN, UpSpace, AddrFileSave, PackSize);
 		ReadFile(pPath, BUFMesg, PackSize, SectorOffset);
 		SysUpWaitOsFinishRead(AddrDgusPackHead);
-		WriteDGUS(AddrDgusPackHead, BufHead, CONTROL_SIZE);
 		WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
+		WriteDGUS(AddrDgusPackHead, BufHead, 10);
 		
 		memset(BUFMesg, 0, sizeof(BUFMesg));
 		AddrFileSave += BUF_SIZE;		

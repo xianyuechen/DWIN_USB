@@ -77,8 +77,8 @@ void main()
 	WriteDGUS(0x5C1, Cmd, 4);
 	USBModule();
 	MesseageShow();
-	SystemUpdate(1, 32);
-	UART5_Sendbyte(0xff);
+	SystemUpdate(5, 32);
+	UART5_Sendbyte('!');
 	while(1);
 }
 
