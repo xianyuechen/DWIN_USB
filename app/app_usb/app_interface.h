@@ -35,7 +35,7 @@
 #define FILE_XXX_BIN					(0x04)	/* 升级文件选择 XXX.BIN */
 #define FILE_XXX_ICL					(0x05)	/* 升级文件选择 XXX.ICL */
 #define FILE_ALL						(0x5A)	/* 整体系统升级 */
-#define FLAG_ALL						(0xFF)	/*  */
+#define FLAG_ALL						(0x0FFF)	/*  */
 #define DWIN_DIR						("/DWIN_SET")	/* DWIN存放升级文件的文件夹 */
 #define MATCH_LIST_SIZE					(40)	/* 匹配文件列表的文件数目 */
 /* 文件Flash地址计算 */
@@ -92,12 +92,13 @@ UINT8 RmFileOrDir(PUINT8 pPathName);								/* 删除文件或者目录 */
 UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 读取文件信息 */
 UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 写入文件、不存在则新建 */
 UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
-UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber);				/* 系统升级 */
+UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 
-void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
+void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
 UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
+void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount);
 UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
 void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize);
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);

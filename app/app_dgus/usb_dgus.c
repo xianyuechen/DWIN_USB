@@ -17,7 +17,7 @@
 #include "usb_dgus.h"
 
 
-void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant;
+void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
 /********************************ºê¶¨Òå***************************************/
 /* USB DGUS¼Ä´æÆ÷µØÖ· */
 #define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)
@@ -388,16 +388,19 @@ void AckGetOrSetPath(void)
 void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
-	UINT8 FileType = 0, FileNumber = 0, Times = 0;
+	UINT8 FileType = 0;
+	UINT16 FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	UART5_SendString("Up Up Up\n");
 	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 	FileType = Cmd[0];
-	FileNumber = Cmd[1];
+	FileNumber = ((UINT16)Cmd[1] << 8) | Cmd[2];
 	SystemUpDriver(FileType, FileNumber, &Times);
 	Cmd[0] = 0x00;
 	Cmd[1] = 0x00;
-	Cmd[2] = Times;
+	Cmd[2] = 0x00;
+	Cmd[3] = Times >> 8;
+	Cmd[4] = (UINT8)Times;
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 }
 
@@ -430,9 +433,9 @@ END:
 	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
 }
 
-void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant
+void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 {
-	UINT8 xdata Num = 0;
+	UINT16 xdata Num = 0;
 	UINT8 xdata String[20];
 	if (FileNumber != FLAG_ALL) 
 	{
@@ -444,11 +447,11 @@ void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant
 	{
 		case FILE_ALL:
 		{
-			SystemUpDriver(FILE_T5L51_BIN, 	0x00, pTimes);
-			SystemUpDriver(FILE_DWINOS_BIN, 0x00, pTimes);
-			SystemUpDriver(FILE_XXX_LIB, 	0xFF, pTimes);
-			SystemUpDriver(FILE_XXX_BIN, 	0xFF, pTimes);
-			SystemUpDriver(FILE_XXX_ICL, 	0xFF, pTimes);
+			SystemUpDriver(FILE_T5L51_BIN, 	0x0FFF, pTimes);
+			SystemUpDriver(FILE_DWINOS_BIN, 0x0FFF, pTimes);
+			SystemUpDriver(FILE_XXX_LIB, FLAG_ALL, pTimes);
+			SystemUpDriver(FILE_XXX_BIN, FLAG_ALL, pTimes);
+			SystemUpDriver(FILE_XXX_ICL, FLAG_ALL, pTimes);
 			break;
 		}
 		case FILE_T5L51_BIN:
@@ -457,7 +460,7 @@ void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant
 			break;
 		case FILE_XXX_LIB:
 		{
-			for (Num = 0; Num < 0xFF; Num++)
+			for (Num = 0; Num < 1000; Num++)
 			{
 				SystemUpDriver(FILE_XXX_LIB, Num, pTimes);
 			}
@@ -475,8 +478,10 @@ void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant
 		}
 		case FILE_XXX_ICL:
 		{
-			for (Num = 32; Num < 0xFF; Num++)
+			for (Num = 32; Num < 1000; Num++)
 			{
+				sprintf(String, "Num = %d.\n", (UINT16)Num);
+				UART5_SendString(String);
 				SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
 			}
 			break;

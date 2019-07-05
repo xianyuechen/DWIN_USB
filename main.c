@@ -74,6 +74,10 @@ void main()
 	Cmd[2] = 0xE1;
 	Cmd[3] = 0x88;
 	WriteDGUS(0x5C1, Cmd, 4);
+	//SystemUP
+	Cmd[0] = 0xFF;
+	Cmd[1] = 0x00;
+	WriteDGUS(0x5D5, Cmd, 2);
 	
 	USBModule();
 	MesseageShow();

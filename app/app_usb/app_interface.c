@@ -384,7 +384,7 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
 	return (Status == USB_INT_SUCCESS ? DWIN_OK : DWIN_ERROR);
 }
 
-void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
+void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
 {
 	switch (FileType)
 	{
@@ -410,7 +410,7 @@ void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32
 
 		case FILE_XXX_LIB:
 		{
-			sprintf(pString, "%d", (UINT16)FileNumber);
+			sprintf(pString, "%d", FileNumber);
 			pString += 6;
 			strcpy(pString, ".LIB");
 			*pFileAddr = LIB((UINT32)FileNumber);
@@ -419,7 +419,7 @@ void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32
 		}
 		case FILE_XXX_BIN:
 		{
-			sprintf(pString, "%d", (UINT16)FileNumber);
+			sprintf(pString, "%d", FileNumber);
 			pString += 6;
 			strcpy(pString, ".BIN");
 			pString += 6;
@@ -432,7 +432,7 @@ void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32
 		}
 		case FILE_XXX_ICL:
 		{
-			sprintf(pString, "%d", (UINT16)FileNumber);
+			sprintf(pString, "%d", FileNumber);
 			pString += 6;
 			strcpy(pString, ".ICL");
 			*pFileAddr = ICL((UINT32)FileNumber);
@@ -453,6 +453,18 @@ UINT8 SysUpGetDWINFile(PUINT8 pMatchList)
 	else return DWIN_ERROR;
 }
 
+void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
+{	
+	if (*pDest > '9' || *pDest < '0')
+	{
+		(*pCount)++;
+		return;
+	}		
+	for (; *pDest >= '0' && *pDest <= '9'; pDest++, pSource++)
+		if (*pDest != *pSource) return;
+	(*pCount)++;
+}
+
 UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize)
 {
 	UINT8 i = 0;
@@ -464,7 +476,7 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
 		for (pNow = pDest; *pNow != 0; pNow += 6)
 		{
 			pStatus = strstr(pSource, pNow);
-			if (pStatus != NULL) i++;
+			if (pStatus != NULL) NumberStringMatch(pSource, pNow, &i);
 			if (i == 0 && pStatus == NULL) break;
 			if (i == 2)
 			{
@@ -567,7 +579,7 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 	SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, FirstPackSize);
 }
 
-UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
+UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 {
 	UINT8 xdata String[24]; //4 * 6
 	UINT8 xdata FilePath[22];
@@ -586,7 +598,9 @@ UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 	Status = SysUpFileMatch(FileList, String, FilePath, &FileSize);
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
+	//
 	UART5_SendString(FilePath);
+	//
 	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
 }
