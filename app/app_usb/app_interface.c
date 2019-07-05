@@ -483,8 +483,12 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
 
 void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
-	UINT8 Flag = 0x5a;
-	while(Flag == FLAG_EN) ReadDGUS(AddrDgus, &Flag, 1);
+	UINT8 Flag = 0;
+	do
+	{
+		ReadDGUS(AddrDgus, &Flag, 1);
+	}
+	while(Flag == FLAG_EN);
 }
 
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
@@ -504,13 +508,13 @@ void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT
 void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize)
 {
 	SysUpWaitOsFinishRead(AddrDgusHead);
-	WriteDGUS(AddrDgusHead, BufHead, 512);
+	WriteDGUS(AddrDgusHead, BufHead, 10);
 	WriteDGUS(AddrDgusMesg, BufMesg, MesgSize);
 	if (*BufHead != FLAG_EN)
 	{
-		BufHead[0] = FLAG_EN;
+		*BufHead = FLAG_EN;
 		SysUpWaitOsFinishRead(AddrDgusHead);
-		WriteDGUS(AddrDgusHead, BufHead, 1);
+		WriteDGUS(AddrDgusHead, BufHead, 10);
 	}
 }
 
