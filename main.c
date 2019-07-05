@@ -77,9 +77,8 @@ void main()
 	
 	USBModule();
 	MesseageShow();
-	SystemUpdate(5, 32);
-	//UART5_Sendbyte('!');
-	while(1);
+	//SystemUpdate(5, 32);
+	//while(1);
 }
 
 void T0_ISR_PC(void)	interrupt 1

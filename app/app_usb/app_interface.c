@@ -572,7 +572,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 	UINT8 xdata String[24]; //4 * 6
 	UINT8 xdata FilePath[22];
 	UINT8 xdata FileList[sizeof(FAT_NAME) * DIR_FILE_MAX];
-	UINT8 UpSpace = 0;
+	UINT8 UpSpace = 0, Status = 0;
 	UINT32 AddrFile = 0, FileSize = 0, AddrDgusPack = 0;
 	memset(String, 0, sizeof(String));
 	memset(FilePath, 0, sizeof(FilePath));
@@ -582,7 +582,10 @@ UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 	AddrDgusPack = ((UINT16)FilePath[3] << 8) | 0x00;
 	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
 	SysUpGetDWINFile(FileList);
-	SysUpFileMatch(FileList, String, FilePath, &FileSize);
+	
+	Status = SysUpFileMatch(FileList, String, FilePath, &FileSize);
+	if (Status != DWIN_OK) return DWIN_ERROR;
+	if (FileSize == 0) return DWIN_ERROR;
 	UART5_SendString(FilePath);
 	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;

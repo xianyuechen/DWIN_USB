@@ -35,6 +35,7 @@
 #define FILE_XXX_BIN					(0x04)	/* 升级文件选择 XXX.BIN */
 #define FILE_XXX_ICL					(0x05)	/* 升级文件选择 XXX.ICL */
 #define FILE_ALL						(0x5A)	/* 整体系统升级 */
+#define FLAG_ALL						(0xFF)	/*  */
 #define DWIN_DIR						("/DWIN_SET")	/* DWIN存放升级文件的文件夹 */
 #define MATCH_LIST_SIZE					(40)	/* 匹配文件列表的文件数目 */
 /* 文件Flash地址计算 */

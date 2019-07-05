@@ -16,6 +16,8 @@
 
 #include "usb_dgus.h"
 
+
+void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant;
 /********************************ºê¶¨Òå***************************************/
 /* USB DGUS¼Ä´æÆ÷µØÖ· */
 #define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)
@@ -386,15 +388,16 @@ void AckGetOrSetPath(void)
 void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
-	UINT8 FileType = 0, FileNumber = 0, Status = 0;
+	UINT8 FileType = 0, FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
+	UART5_SendString("Up Up Up\n");
 	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 	FileType = Cmd[0];
 	FileNumber = Cmd[1];
-	Status = SystemUpdate(FileType, FileNumber);
+	SystemUpDriver(FileType, FileNumber, &Times);
 	Cmd[0] = 0x00;
 	Cmd[1] = 0x00;
-	Cmd[2] = Status;
+	Cmd[2] = Times;
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 }
 
@@ -425,6 +428,61 @@ void AckDiskInit(void)
 		Cmd[2] = CheckDiskInit();
 END:
 	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
+}
+
+void SystemUpDriver(UINT8 FileType, UINT8 FileNumber, PUINT8 pTimes) reentrant
+{
+	UINT8 xdata Num = 0;
+	UINT8 xdata String[20];
+	if (FileNumber != FLAG_ALL) 
+	{
+		if (DWIN_OK == SystemUpdate(FileType, FileNumber)) (*pTimes)++;
+		goto END;
+	}
+	memset(String, 0, 20);
+	switch(FileType)
+	{
+		case FILE_ALL:
+		{
+			SystemUpDriver(FILE_T5L51_BIN, 	0x00, pTimes);
+			SystemUpDriver(FILE_DWINOS_BIN, 0x00, pTimes);
+			SystemUpDriver(FILE_XXX_LIB, 	0xFF, pTimes);
+			SystemUpDriver(FILE_XXX_BIN, 	0xFF, pTimes);
+			SystemUpDriver(FILE_XXX_ICL, 	0xFF, pTimes);
+			break;
+		}
+		case FILE_T5L51_BIN:
+			break;
+		case FILE_DWINOS_BIN:
+			break;
+		case FILE_XXX_LIB:
+		{
+			for (Num = 0; Num < 0xFF; Num++)
+			{
+				SystemUpDriver(FILE_XXX_LIB, Num, pTimes);
+			}
+			break;
+		}
+		case FILE_XXX_BIN:
+		{
+			for (Num = 0; Num < 32; Num++)
+			{
+				sprintf(String, "Num = %d.\n", (UINT16)Num);
+				UART5_SendString(String);
+				SystemUpDriver(FILE_XXX_BIN, Num, pTimes);
+			}
+			break;
+		}
+		case FILE_XXX_ICL:
+		{
+			for (Num = 32; Num < 0xFF; Num++)
+			{
+				SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
+			}
+			break;
+		}
+	}
+END:{}
 }
 
 void MesseageShow(void)
