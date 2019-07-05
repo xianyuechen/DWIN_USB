@@ -391,7 +391,6 @@ void AckSystemUp(void)
 	UINT8 FileType = 0;
 	UINT16 FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
-	UART5_SendString("Up Up Up\n");
 	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 	FileType = Cmd[0];
 	FileNumber = ((UINT16)Cmd[1] << 8) | Cmd[2];
@@ -447,8 +446,8 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 	{
 		case FILE_ALL:
 		{
-			SystemUpDriver(FILE_T5L51_BIN, 	0x0FFF, pTimes);
-			SystemUpDriver(FILE_DWINOS_BIN, 0x0FFF, pTimes);
+			SystemUpDriver(FILE_T5L51_BIN, 	0x00FF, pTimes);
+			SystemUpDriver(FILE_DWINOS_BIN, 0x00FF, pTimes);
 			SystemUpDriver(FILE_XXX_LIB, FLAG_ALL, pTimes);
 			SystemUpDriver(FILE_XXX_BIN, FLAG_ALL, pTimes);
 			SystemUpDriver(FILE_XXX_ICL, FLAG_ALL, pTimes);
@@ -470,8 +469,6 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 		{
 			for (Num = 0; Num < 32; Num++)
 			{
-				sprintf(String, "Num = %d.\n", (UINT16)Num);
-				UART5_SendString(String);
 				SystemUpDriver(FILE_XXX_BIN, Num, pTimes);
 			}
 			break;
@@ -480,8 +477,6 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 		{
 			for (Num = 32; Num < 1000; Num++)
 			{
-				sprintf(String, "Num = %d.\n", (UINT16)Num);
-				UART5_SendString(String);
 				SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
 			}
 			break;

@@ -460,8 +460,13 @@ void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
 		(*pCount)++;
 		return;
 	}		
-	for (; *pDest >= '0' && *pDest <= '9'; pDest++, pSource++)
+	do
+	{
 		if (*pDest != *pSource) return;
+		pDest++;
+		pSource++;
+	}while(*pSource >= '0' && *pSource <= '9');
+		
 	(*pCount)++;
 }
 
@@ -600,6 +605,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	if (FileSize == 0) return DWIN_ERROR;
 	//
 	UART5_SendString(FilePath);
+	UART5_SendString("\n");
 	//
 	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
