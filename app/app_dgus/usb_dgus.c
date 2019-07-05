@@ -436,7 +436,7 @@ void MesseageShow(void)
 	
 	memset(Ms, 0, sizeof(Ms));
 	memset(String, 0, sizeof(String));
-	ReadDGUS(0xC188, Ms, sizeof(Ms));
+	ReadDGUS(0xE188, Ms, sizeof(Ms));
 	DIR_CrtTime  = (Ms[1] << 8) | Ms[2];
 	DIR_CrtDate  = (Ms[3] << 8) | Ms[4];
 	DIR_WrtTime  = (Ms[5] << 8) | Ms[6];
@@ -447,30 +447,30 @@ void MesseageShow(void)
 	Min  = (DIR_CrtTime & 0x07E0) >> 5;
 	Sec  = (DIR_CrtTime & 0x001F) << 1;
 	sprintf(String, "%2d : %2d : %2d", Hour, Min, Sec);
-	WriteDGUS(0xC1B0, String, sizeof(String));
+	WriteDGUS(0xE1B0, String, sizeof(String));
 	memset(String, 0, sizeof(String));
 	
 	Year  = ((DIR_CrtDate & 0xFE00) >> 9) + 1980;
 	Month = (DIR_CrtDate & 0x01E0) >> 5;
 	Day   = DIR_CrtDate & 0x001F;
 	sprintf(String, "%4d - %2d - %2d", Year, Month, Day);
-	WriteDGUS(0xC1A0, String, sizeof(String));
+	WriteDGUS(0xE1A0, String, sizeof(String));
 	memset(String, 0, sizeof(String));
 	
 	Hour = (DIR_WrtTime & 0xF800) >> 11;
 	Min  = (DIR_WrtTime & 0x07E0) >> 5;
 	Sec  = (DIR_WrtTime & 0x001F) << 1;
 	sprintf(String, "%2d : %2d : %2d", Hour, Min, Sec);
-	WriteDGUS(0xC1D0, String, sizeof(String));
+	WriteDGUS(0xE1D0, String, sizeof(String));
 	memset(String, 0, sizeof(String));
 	
 	Year  = ((DIR_WrtDate & 0xFE00) >> 9) + 1980;
 	Month = (DIR_WrtDate & 0x01E0) >> 5;
 	Day   = DIR_WrtDate & 0x001F;
 	sprintf(String, "%4d - %2d - %2d", Year, Month, Day);
-	WriteDGUS(0xC1C0, String, sizeof(String));
+	WriteDGUS(0xE1C0, String, sizeof(String));
 	memset(String, 0, sizeof(String));
 	
 	sprintf(String, "%lu Byte", DIR_FileSize);
-	WriteDGUS(0xC1E0, String, sizeof(String));
+	WriteDGUS(0xE1E0, String, sizeof(String));
 }

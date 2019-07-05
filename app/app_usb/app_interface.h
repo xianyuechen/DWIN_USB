@@ -42,7 +42,7 @@
 #define ADDR_DWIN_OS		(UINT32)(0x18000);							/* DWINOS* 文件地址 */
 #define LIB(x)				(UINT32)((0x30 + x) << 12)			/* *.LIB 库文件地址 */
 #define FONT(x)				(UINT32)(x << 18)	/* XX*.BIN 字库文件地址 */
-#define ICL(x)				(UINT32)((0x200 + x) << 17)	/* XX*.BMP 图片文件地址 */
+#define ICL(x)				(UINT32)(x << 18)	/* XX*.ICL 图片文件地址 */
 /* 升级使能标记 */
 #define FLAG_EN				(0x5A)
 #define FLAG_NO_EN			(0x00)
@@ -98,6 +98,7 @@ UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 void SysUpGetFileMesg(UINT8 FileType, UINT8 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
 UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
+void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize);
 void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
 void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
 void SysUpWaitOsFinishRead(UINT32 AddrDgus);

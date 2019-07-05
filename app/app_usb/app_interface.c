@@ -501,16 +501,29 @@ void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT
 	*pBuf = 0x00;
 }
 
+void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize)
+{
+	SysUpWaitOsFinishRead(AddrDgusHead);
+	WriteDGUS(AddrDgusHead, BufHead, 512);
+	WriteDGUS(AddrDgusMesg, BufMesg, MesgSize);
+	if (*BufHead != FLAG_EN)
+	{
+		BufHead[0] = FLAG_EN;
+		SysUpWaitOsFinishRead(AddrDgusHead);
+		WriteDGUS(AddrDgusHead, BufHead, 1);
+	}
+}
+
 void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
 {
 	UINT8 xdata BufHead[CONTROL_SIZE];
-	UINT8 xdata BUFMesg[BUF_SIZE];
+	UINT8 xdata BufMesg[BUF_SIZE];
 	UINT8 Count = 0;
 	UINT16 PackSize = 0, FirstPackSize = 0;
 	UINT32 SectorOffset = 0, FirstAddrFileSave = 0;
 	UINT32 AddrDgusPackHead = 0, AddrDgusPackMesg = 0;
 	memset(BufHead, 0, sizeof(BufHead));
-	memset(BUFMesg, 0, sizeof(BUFMesg));
+	memset(BufMesg, 0, sizeof(BufMesg));
 	AddrDgusPackHead = AddrDgusPck;
 	AddrDgusPackMesg = AddrDgusPck + (CONTROL_SIZE / 2);
 	if(FileSize > BUF_SIZE) FirstPackSize = BUF_SIZE;
@@ -520,7 +533,7 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 		FileSize = 0;
 	}
 	FirstAddrFileSave = AddrFileSave;
-	/* Send Pack 1 */
+	/* Send Pack */
 	while(FileSize)
 	{
 		if (FileSize > BUF_SIZE) 
@@ -533,32 +546,21 @@ void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFi
 			PackSize = (UINT16)FileSize;
 			FileSize = 0;
 		}
-		
+		SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, AddrFileSave, PackSize);
+		ReadFile(pPath, BufMesg, PackSize, SectorOffset);
 		if (Count == 0) 
 		{
-			SysUpPcakSet(BufHead, FLAG_NO_EN, 0, 0, 0);
+			memset(BufMesg, 0, 16); /* FirstPack Head Clean, Because of .ICL's scaning */
 			Count = 1;
 		}
-		else SysUpPcakSet(BufHead, FLAG_EN, UpSpace, AddrFileSave, PackSize);
-		ReadFile(pPath, BUFMesg, PackSize, SectorOffset);
-		SysUpWaitOsFinishRead(AddrDgusPackHead);
-		WriteDGUS(AddrDgusPackMesg, BUFMesg, PackSize);
-		WriteDGUS(AddrDgusPackHead, BufHead, 10);
-		
-		memset(BUFMesg, 0, sizeof(BUFMesg));
+		SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, PackSize);	
+		memset(BufMesg, 0, sizeof(BufMesg));
 		AddrFileSave += BUF_SIZE;		
 		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
 	}
 	SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, FirstAddrFileSave, FirstPackSize);
-	ReadFile(pPath, BUFMesg, FirstPackSize, 0);
-	SysUpWaitOsFinishRead(AddrDgusPackHead);
-	
-	WriteDGUS(AddrDgusPackMesg, BUFMesg, FirstPackSize);
-	WriteDGUS(AddrDgusPackHead, BufHead, 10);
-	
-	BufHead[0] = FLAG_EN;
-	SysUpWaitOsFinishRead(AddrDgusPackHead);
-	WriteDGUS(AddrDgusPackHead, BufHead, 1);
+	ReadFile(pPath, BufMesg, FirstPackSize, 0);
+	SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, FirstPackSize);
 }
 
 UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
@@ -577,6 +579,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT8 FileNumber)
 	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
 	SysUpGetDWINFile(FileList);
 	SysUpFileMatch(FileList, String, FilePath, &FileSize);
+	UART5_SendString(FilePath);
 	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
 }

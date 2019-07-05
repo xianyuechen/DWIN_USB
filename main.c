@@ -35,33 +35,32 @@ void main()
 	UINT16 Size = 0;
 	
 	UINT32 Buf_Size = 0;
-	UINT8 xdata filename[480];
+	UINT8 xdata filename[0x1000];
 	UINT8 xdata Cmd[16];	
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
 	memset(filename, 0, sizeof(filename));
 	memset(Cmd, 0, sizeof(Cmd));
-	//SystemUpdate(0, 0);
 	//配置：创建或者删除文件
 	Cmd[0] = 0x55;
-	Cmd[1] = 0xC0;
+	Cmd[1] = 0xE0;
 	Cmd[2] = 0x00;
 	WriteDGUS(0x5C5, Cmd, 4);
 	//配置：获取文件列表
 	filename[0] = '*';
-	WriteDGUS(0xC040, filename, 3);
-	Cmd[0] = 0xC0;
+	WriteDGUS(0xE040, filename, 3);
+	Cmd[0] = 0xE0;
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xC0;
+	Cmd[2] = 0xE0;
 	Cmd[3] = 0x40;
-	Cmd[4] = 0xC0;
+	Cmd[4] = 0xE0;
 	Cmd[5] = 0x48;
 	WriteDGUS(0x5D1, Cmd, 6);
 	//配置：读写文件
-	Cmd[0] = 0xC0;
+	Cmd[0] = 0xE0;
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xC2;
+	Cmd[2] = 0xE2;
 	Cmd[3] = 0x00;
 	Cmd[4] = 0x00;
 	Cmd[5] = 0x00;
@@ -70,16 +69,17 @@ void main()
 	Cmd[8] = 0x00;
 	WriteDGUS(0x5C9, Cmd, 10);
 	//配置：文件属性获取或设置
-	Cmd[0] = 0xC0;
+	Cmd[0] = 0xE0;
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xC1;
+	Cmd[2] = 0xE1;
 	Cmd[3] = 0x88;
 	WriteDGUS(0x5C1, Cmd, 4);
+	
 	USBModule();
 	MesseageShow();
-	SystemUpdate(5, 32);
-	UART5_Sendbyte('!');
-	while(1);
+	//SystemUpdate(5, 32);
+	//UART5_Sendbyte('!');
+	//while(1);
 }
 
 void T0_ISR_PC(void)	interrupt 1
