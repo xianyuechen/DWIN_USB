@@ -3,29 +3,30 @@
                   版权所有 (C), 2019, 北京迪文科技有限公司	
 																			  
 *******************************************************************************
-文 件 名   : usb_dgus.h
+文 件 名   : para_port.c
 版 本 号   : V1.0
 作    者   : chenxianyue
-生成日期   : 2019年7月8日
-功能描述   : USB接口相关的的DGUS应用程序实现
+生成日期   : 2019年6月21日
+功能描述   : CH376并口初始化以及与T5L并口通讯实现
 修改历史   :
 日    期   : 
 作    者   : 
 修改内容   : 	
 ******************************************************************************/
-#ifndef _USB_DGUS_H_
-#define _USB_DGUS_H_
 
-#include "app/app_usb/app_interface.h"
-#include "driver/dgus/dgus.h"
-#include "driver/uart/uart.h"
-#include "driver/system/sys.h"
-#include "string.h"
-#include "stdio.h"
+#ifndef _PARA_PORT_H_
+#define _PARA_PORT_H_
+
+#include "../../system/include/t5los8051.h"
+#include "intrins.h"
+#include "../../system/include/sys.h"	
 
 /********************************对外函数声明*********************************/
 
-void USBModule(void);			/* USB模块初始化 */
-void MesseageShow(void);		/* 文件属性DGUS显示 */
+void CH376_PORT_INIT(void);			/* 初始化并口IO */
+UINT8 xReadCH376Status(void);		/* 从CH376读状态 */	
+void xWriteCH376Cmd(UINT8 mCmd);	/* 向CH376写命令 */		
+void xWriteCH376Data(UINT8 mData);	/* 向CH376写数据 */ 
+UINT8 xReadCH376Data(void);			/* 从CH376读数据 */	
 
 #endif

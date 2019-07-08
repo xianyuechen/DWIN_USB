@@ -13,15 +13,15 @@
 * 作    者   :
 * 修改内容   : 
 ******************************************************************************/
-#include "t5los8051.h"
-#include "driver/system/sys.h"
-#include "app/app_usb/app_interface.h"
-#include "app/app_dgus/usb_dgus.h"
-#include "driver/uart/uart.h"
-#include "driver/usb/ch376.h"
-#include "driver/usb/para_port.h"
-#include "app/app_usb/file_sys.h"
-#include "driver/dgus/dgus.h"
+#include "../../../components/system/include/t5los8051.h"
+#include "../../../components/system/include/sys.h"
+#include "../../../components/usb/include/app_interface.h"
+#include "../../../components/usb/include/usb_dgus.h"
+#include "../../../components/uart/include/uart.h"
+#include "../../../components/usb/include/ch376.h"
+#include "../../../components/usb/include/para_port.h"
+#include "../../../components/usb/include/file_sys.h"
+#include "../../../components/dgus_api/include/dgus.h"
 #include "string.h"
 #include "stdio.h"
 void Delay(void);

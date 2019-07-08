@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Target 1</TargetName>
+      <TargetName>components</TargetName>
       <ToolsetNumber>0x0</ToolsetNumber>
       <ToolsetName>MCS-51</ToolsetName>
       <uAC6>0</uAC6>
@@ -374,52 +374,72 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>CH376</GroupName>
+          <GroupName>dgus_api</GroupName>
           <Files>
+            <File>
+              <FileName>dgus.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\components\dgus_api\dgus.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>system</GroupName>
+          <Files>
+            <File>
+              <FileName>sys.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\components\system\sys.c</FilePath>
+            </File>
             <File>
               <FileName>STARTUP_M5.A51</FileName>
               <FileType>2</FileType>
-              <FilePath>.\STARTUP_M5.A51</FilePath>
+              <FilePath>..\..\components\system\STARTUP_M5.A51</FilePath>
             </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>uart</GroupName>
+          <Files>
             <File>
-              <FileName>main.c</FileName>
+              <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\main.c</FilePath>
+              <FilePath>..\..\components\uart\uart.c</FilePath>
             </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>usb</GroupName>
+          <Files>
             <File>
               <FileName>app_interface.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\app\app_usb\app_interface.c</FilePath>
+              <FilePath>..\..\components\usb\app_interface.c</FilePath>
             </File>
             <File>
               <FileName>file_sys.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\app\app_usb\file_sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>dgus.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\driver\dgus\dgus.c</FilePath>
-            </File>
-            <File>
-              <FileName>sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\driver\system\sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\driver\uart\uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>para_port.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\driver\usb\para_port.c</FilePath>
+              <FilePath>..\..\components\usb\file_sys.c</FilePath>
             </File>
             <File>
               <FileName>usb_dgus.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\app\app_dgus\usb_dgus.c</FilePath>
+              <FilePath>..\..\components\usb\usb_dgus.c</FilePath>
+            </File>
+            <File>
+              <FileName>para_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\components\usb\para_port.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>main</GroupName>
+          <Files>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\main\main.c</FilePath>
             </File>
           </Files>
         </Group>

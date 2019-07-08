@@ -16,12 +16,12 @@
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 
-#include "app/app_usb/file_sys.h"
-#include "driver/system/sys.h"
-#include "driver/usb/para_port.h"
-#include "driver/usb/ch376.h"
-#include "driver/uart/uart.h"
-#include "driver/dgus/dgus.h"
+#include "../../usb/include/file_sys.h"
+#include "../../system/include/sys.h"
+#include "../../usb/include/para_port.h"
+#include "../../usb/include/ch376.h"
+#include "../../uart/include/uart.h"
+#include "../../dgus_api/include/dgus.h"
 #include "string.h"
 #include "stdio.h"
 

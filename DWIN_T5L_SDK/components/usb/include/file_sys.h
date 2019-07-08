@@ -16,10 +16,10 @@
 #ifndef _FILE_SYS_H_
 #define _FILE_SYS_H_
 
-#include "t5los8051.h"
-#include "driver/system/sys.h"
-#include "driver/usb/ch376.h"
-#include "driver/usb/para_port.h"
+#include "../../system/include/t5los8051.h"
+#include "../../system/include/sys.h"
+#include "../../usb/include/ch376.h"
+#include "../../usb/include/para_port.h"
 #include "string.h"
 
 /********************************宏定义**************************************/
@@ -36,6 +36,7 @@ typedef struct _FAT_NAME
 }FAT_NAME, *P_FAT_NAME;
 
 /********************************对外函数声明*********************************/
+
 void AlphabetTransfrom(PUINT8 name);		/* 小写文件名统一转换为大写文件名 */
 
 /* 文件操作 */
