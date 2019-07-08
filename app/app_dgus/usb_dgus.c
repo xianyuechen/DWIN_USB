@@ -31,38 +31,37 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
-#define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)		/* 获取或者设置文件或目录属性 */
-#define DGUS_ADDR_CREATE_OR_DEL_PATH	(0x5C4)		/* 创建或者删除文件或目录 */
-#define DGUS_ADDR_READ_OR_WRITE_FILE	(0x5C8)		/* 读取或者写入文件 */
-#define DGUS_ADDR_SEARCH_FILE			(0x5D0)		/* 查找文件 */
-#define DGUS_ADDR_SYSTEM_UP				(0x5D4)		/* 系统升级 */
-#define DGUS_ADDR_DISK_STATUS			(0x5D8)		/* 芯片或者USB状态 */
+#define DGUS_ADDR_GET_OR_SET_PATH       (0x5C0)		/* 获取或者设置文件或目录属性 */
+#define DGUS_ADDR_CREATE_OR_DEL_PATH    (0x5C4)		/* 创建或者删除文件或目录 */
+#define DGUS_ADDR_READ_OR_WRITE_FILE    (0x5C8)		/* 读取或者写入文件 */
+#define DGUS_ADDR_SEARCH_FILE           (0x5D0)		/* 查找文件 */
+#define DGUS_ADDR_SYSTEM_UP             (0x5D4)		/* 系统升级 */
+#define DGUS_ADDR_DISK_STATUS           (0x5D8)		/* 芯片或者USB状态 */
 /* USB 操作动作定义 */
-#define ACK_GET_OR_SET_PATH				(0x01)		/* 获取或者设置文件或目录属性 */
-#define ACK_CREATE_OR_DEL_PATH			(0x02)		/* 创建或者删除文件或目录 */
-#define ACK_READ_OR_WRITE_FILE			(0x03)		/* 读取或者写入文件 */
-#define ACK_SEARCH_FILE					(0x04)		/* 查找文件 */
-#define ACK_SYSTEM_UP					(0x05)		/* 系统升级 */
-#define ACK_DISK_INIT					(0x06)		/* 芯片或者USB初始化 */
+#define ACK_GET_OR_SET_PATH             (0x01)		/* 获取或者设置文件或目录属性 */
+#define ACK_CREATE_OR_DEL_PATH          (0x02)		/* 创建或者删除文件或目录 */
+#define ACK_READ_OR_WRITE_FILE          (0x03)		/* 读取或者写入文件 */
+#define ACK_SEARCH_FILE                 (0x04)		/* 查找文件 */
+#define ACK_SYSTEM_UP                   (0x05)		/* 系统升级 */
+#define ACK_DISK_INIT                   (0x06)		/* 芯片或者USB初始化 */
 /* 标志位定义 */
-#define FLAG_START						(0x5A)		/* 开始标志 */
-#define FLAG_END						(0x00)		/* 结束标志 */
-#define FLAG_READ						(0x5A)		/* 读取标志 */
-#define FLAG_WRITE						(0xA5)		/* 写入标志 */
-#define FLAG_CREATE						(0x5A)		/* 创建标志 */
-#define FLAG_DELETE						(0xA5)		/* 删除标志 */
-#define TYPE_FILE						(0x55)		/* 类型为文件 */
-#define TYPE_DIR 						(0xAA)		/* 类型为目录 */
-#define DISK_IC_ERROR					(0x00)		/* 芯片错误或者连接错误 */
-#define DISK_NO_CONNECT					(0x00)		/* 磁盘没有连接 */
-#define DISK_NO_INIT					(0x00)		/* 磁盘没有初始化 */
-
-#define MATCH_LIST_NUM					(0x28)		/* 匹配列表的数量 */
-#define MATCH_LIST_LEN					(0x320)		/* 匹配列表的总字节长 */
-#define MATCH_STRING_LEN				(0x10)		/* 匹配字符串长度 */
-#define PATH_LENGTH						(0x80)		/* 路径长度 */
+#define FLAG_START                      (0x5A)		/* 开始标志 */
+#define FLAG_END                        (0x00)		/* 结束标志 */
+#define FLAG_READ                       (0x5A)		/* 读取标志 */
+#define FLAG_WRITE                      (0xA5)		/* 写入标志 */
+#define FLAG_CREATE                     (0x5A)		/* 创建标志 */
+#define FLAG_DELETE                     (0xA5)		/* 删除标志 */
+#define TYPE_FILE                       (0x55)		/* 类型为文件 */
+#define TYPE_DIR                        (0xAA)		/* 类型为目录 */
+#define DISK_IC_ERROR                   (0x00)		/* 芯片错误或者连接错误 */
+#define DISK_NO_CONNECT                 (0x00)		/* 磁盘没有连接 */
+#define DISK_NO_INIT                    (0x00)		/* 磁盘没有初始化 */
+#define MATCH_LIST_NUM                  (0x28)		/* 匹配列表的数量 */
+#define MATCH_LIST_LEN                  (0x320)		/* 匹配列表的总字节长 */
+#define MATCH_STRING_LEN                (0x10)		/* 匹配字符串长度 */
+#define PATH_LENGTH                     (0x80)		/* 路径长度 */
 #ifndef BUF_SIZE
-#define BUF_SIZE						(0x1000)	/* BUF缓冲区大小 */
+#define BUF_SIZE                        (0x1000)	/* BUF缓冲区大小 */
 #endif
 
 /********************************函数定义开始*********************************/
