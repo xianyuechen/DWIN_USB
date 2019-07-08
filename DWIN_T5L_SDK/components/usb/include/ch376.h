@@ -13,7 +13,7 @@
 作    者   : chenxianyue
 修改内容   : 	
 ******************************************************************************/
-#include "../../system/include/sys.h"
+#include "../../dwin_51/include/sys.h"
 #ifndef __CH376_H__
 #define __CH376_H__
 

@@ -17,9 +17,7 @@
 #ifndef _PARA_PORT_H_
 #define _PARA_PORT_H_
 
-#include "../../system/include/t5los8051.h"
-#include "intrins.h"
-#include "../../system/include/sys.h"	
+#include "../../dwin_51/include/sys.h"	
 
 /********************************对外函数声明*********************************/
 

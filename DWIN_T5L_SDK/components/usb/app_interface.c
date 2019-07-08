@@ -15,6 +15,11 @@
 ******************************************************************************/
 
 #include "include/app_interface.h"
+#include "../usb/include/para_port.h"
+#include "../usb/include/ch376.h"
+#include "../uart/include/uart.h"
+#include "../dgus_api/include/dgus.h"
+#include "../usb/include/file_sys.h"
 
 /********************************对内函数声明*********************************/
 

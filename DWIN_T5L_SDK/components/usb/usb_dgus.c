@@ -15,6 +15,11 @@
 ******************************************************************************/
 
 #include "include/usb_dgus.h"
+#include "../usb/include/app_interface.h"
+#include "../dgus_api/include/dgus.h"
+#include "../uart/include/uart.h"
+#include "string.h"
+#include "stdio.h"
 
 /********************************对内函数声明*********************************/
 

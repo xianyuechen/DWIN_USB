@@ -16,8 +16,7 @@
 #ifndef _UART_H_
 #define _UART_H_
 
-#include "../../system/include/t5los8051.h"
-#include "../../system/include/sys.h"
+#include "../../dwin_51/include/sys.h"
 
 /********************************对外函数声明*********************************/
 

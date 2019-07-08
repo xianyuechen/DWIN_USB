@@ -45,10 +45,10 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>.\obj\</OutputDirectory>
-          <OutputName>T5L51</OutputName>
-          <CreateExecutable>1</CreateExecutable>
-          <CreateLib>0</CreateLib>
+          <OutputDirectory>..\lib_dwin\</OutputDirectory>
+          <OutputName>dgus_api</OutputName>
+          <CreateExecutable>0</CreateExecutable>
+          <CreateLib>1</CreateLib>
           <CreateHexFile>1</CreateHexFile>
           <DebugInformation>1</DebugInformation>
           <BrowseInformation>1</BrowseInformation>
@@ -77,7 +77,7 @@
             <nStopB2X>0</nStopB2X>
           </BeforeMake>
           <AfterMake>
-            <RunUserProg1>1</RunUserProg1>
+            <RunUserProg1>0</RunUserProg1>
             <RunUserProg2>0</RunUserProg2>
             <UserProg1Name>.\obj\1.bat</UserProg1Name>
             <UserProg2Name></UserProg2Name>
@@ -380,66 +380,6 @@
               <FileName>dgus.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\components\dgus_api\dgus.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>system</GroupName>
-          <Files>
-            <File>
-              <FileName>sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\system\sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>STARTUP_M5.A51</FileName>
-              <FileType>2</FileType>
-              <FilePath>..\..\components\system\STARTUP_M5.A51</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>uart</GroupName>
-          <Files>
-            <File>
-              <FileName>uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\uart\uart.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>usb</GroupName>
-          <Files>
-            <File>
-              <FileName>app_interface.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\usb\app_interface.c</FilePath>
-            </File>
-            <File>
-              <FileName>file_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\usb\file_sys.c</FilePath>
-            </File>
-            <File>
-              <FileName>usb_dgus.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\usb\usb_dgus.c</FilePath>
-            </File>
-            <File>
-              <FileName>para_port.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\components\usb\para_port.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>main</GroupName>
-          <Files>
-            <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\main\main.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -16,10 +16,8 @@
 #ifndef _FILE_SYS_H_
 #define _FILE_SYS_H_
 
-#include "../../system/include/t5los8051.h"
-#include "../../system/include/sys.h"
+#include "../../dwin_51/include/sys.h"
 #include "../../usb/include/ch376.h"
-#include "../../usb/include/para_port.h"
 #include "string.h"
 
 /********************************宏定义**************************************/

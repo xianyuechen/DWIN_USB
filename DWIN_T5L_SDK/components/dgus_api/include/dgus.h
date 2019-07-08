@@ -16,8 +16,7 @@
 #ifndef _DGUS_H_
 #define _DGUS_H_
 
-#include "../../system/include/t5los8051.h"
-#include "../../system/include/sys.h"
+#include "../../dwin_51/include/sys.h"
 
 /********************************宏定义***************************************/
 

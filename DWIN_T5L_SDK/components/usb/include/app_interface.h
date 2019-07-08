@@ -16,12 +16,8 @@
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 
-#include "../../usb/include/file_sys.h"
-#include "../../system/include/sys.h"
-#include "../../usb/include/para_port.h"
-#include "../../usb/include/ch376.h"
-#include "../../uart/include/uart.h"
-#include "../../dgus_api/include/dgus.h"
+#include "../../dwin_51/include/sys.h"
+
 #include "string.h"
 #include "stdio.h"
 

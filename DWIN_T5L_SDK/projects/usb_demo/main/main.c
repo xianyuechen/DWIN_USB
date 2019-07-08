@@ -13,17 +13,10 @@
 * 作    者   :
 * 修改内容   : 
 ******************************************************************************/
-#include "../../../components/system/include/t5los8051.h"
-#include "../../../components/system/include/sys.h"
-#include "../../../components/usb/include/app_interface.h"
-#include "../../../components/usb/include/usb_dgus.h"
-#include "../../../components/uart/include/uart.h"
-#include "../../../components/usb/include/ch376.h"
-#include "../../../components/usb/include/para_port.h"
-#include "../../../components/usb/include/file_sys.h"
-#include "../../../components/dgus_api/include/dgus.h"
+
 #include "string.h"
 #include "stdio.h"
+#include "lib.h"
 void Delay(void);
 UINT16 TIMES = 0;
 void main()
@@ -86,6 +79,7 @@ void main()
 }
 
 void T0_ISR_PC(void)	interrupt 1
+	
 {
 	EA = 0;
 	TIMES++;

@@ -16,12 +16,7 @@
 #ifndef _USB_DGUS_H_
 #define _USB_DGUS_H_
 
-#include "../../usb/include/app_interface.h"
-#include "../../dgus_api/include/dgus.h"
-#include "../../uart/include/uart.h"
-#include "../../system/include/sys.h"
-#include "string.h"
-#include "stdio.h"
+#include "../../dwin_51/include/sys.h"
 
 /********************************对外函数声明*********************************/
 

@@ -17,8 +17,6 @@
 #ifndef _SYS_H_
 #define _SYS_H_
 
-#include "t5los8051.h"
-
 /********************************宏定义***************************************/
 #ifndef UINT8
 typedef unsigned char	UINT8;
