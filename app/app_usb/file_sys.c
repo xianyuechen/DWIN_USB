@@ -1,25 +1,22 @@
 /******************************************************************************
 																	
-                  ��Ȩ���� (C), 2019, �������ĿƼ����޹�˾	
+                  版权所有 (C), 2019, 北京迪文科技有限公司	
 																			  
 *******************************************************************************
-�� �� ��   : file_sys.c
-�� �� ��   : V1.0
-��    ��   : chenxianyue
-��������   : 2019��6��4��
-��������   : CH376��������ӿ�
-�޸���ʷ   :
-��    ��   : 
-��    ��   : 
-�޸�����   : 	
+文 件 名   : file_sys.c
+版 本 号   : V1.0
+作    者   : chenxianyue
+生成日期   : 2019年6月4日
+功能描述   : CH376驱动程序接口
+修改历史   :
+日    期   : 
+作    者   : 
+修改内容   : 	
 ******************************************************************************/
 #include "file_sys.h"
-#include "string.h"
-#include "t5los8051.h"
-#include "driver/usb/para_port.h"
-#include "driver/uart/uart.h"
+
 UINT8 xdata GlobalBuf[64];
-/********************************�ڲ���������*********************************/
+/********************************内部函数声明*********************************/
 UINT8	Wait376Interrupt(void);
 UINT8	Query376Interrupt(void);
 void	CH376SetFileName(PUINT8 name);
@@ -47,8 +44,10 @@ UINT8	CH376CheckNameSum(PUINT8 pDirName);
 UINT8	CH376ByteLocate(UINT32 offset);
 UINT8	CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount);
 UINT8	CH376LocateInUpDir(PUINT8 pPathName);
-/*********************************����ʵ��*************************************/
-void AlphabetTransfrom(PUINT8 name)			/* Сд�ļ���ͳһת��Ϊ��д�ļ��� */
+
+/********************************函数定义开始*********************************/
+
+void AlphabetTransfrom(PUINT8 name)			/* 小写文件名统一转换为大写文件名 */
 {
 	PUINT8 c;
 	for(c = name; *c != 0; c++)
@@ -63,16 +62,16 @@ UINT8 Wait376Interrupt(void)
 	while (Query376Interrupt() == FALSE)
 	{
 		if(i++ == 0xFFFFF) break;
-	}	/* һֱ���ж� */
-	return (CH376GetIntStatus());			/* ��⵽�ж� */	
+	}	/* 一直等中断 */
+	return (CH376GetIntStatus());			/* 检测到中断 */	
 }
 
 UINT8 Query376Interrupt(void)
 {
-	return (CH376_INT_WIRE ? FALSE : TRUE);  /* CH376���ж����Ų�ѯ */
+	return (CH376_INT_WIRE ? FALSE : TRUE);  /* CH376的中断引脚查询 */
 }
 
-void CH376SetFileName(PUINT8 name)  /* ���ý�Ҫ�������ļ����ļ��� */
+void CH376SetFileName(PUINT8 name)  /* 设置将要操作的文件的文件名 */
 {
 	UINT8	c;
 	xWriteCH376Cmd(CMD10_SET_FILE_NAME);
@@ -82,7 +81,7 @@ void CH376SetFileName(PUINT8 name)  /* ���ý�Ҫ�������ļ����ļ��� */
 	{
 		name ++;
 		c = *name;
-		if (c == DEF_SEPAR_CHAR1 || c == DEF_SEPAR_CHAR2) c = 0;  /* ǿ�н��ļ�����ֹ */
+		if (c == DEF_SEPAR_CHAR1 || c == DEF_SEPAR_CHAR2) c = 0;  /* 强行将文件名截止 */
 		xWriteCH376Data (c);
 	}	
 }
@@ -93,19 +92,19 @@ UINT8 CH376Error(void)
 	return DWIN_ERROR;
 }
 
-UINT8 CH376DeleteFile(PUINT8 pName)		/* �ڸ�Ŀ¼���ߵ�ǰĿ¼��ɾ���ļ�����Ŀ¼(�ļ���) */
+UINT8 CH376DeleteFile(PUINT8 pName)		/* 在根目录或者当前目录下删除文件或者目录(文件夹) */
 {
 	CH376SetFileName(pName);
 	return (CH376SendCmdWaitInt(CMD0H_FILE_ERASE));
 }	
 
-UINT8 CH376FileOpen(PUINT8 name)	/* �ڸ�Ŀ¼���ߵ�ǰĿ¼�´��ļ�����Ŀ¼(�ļ���) */
+UINT8 CH376FileOpen(PUINT8 name)	/* 在根目录或者当前目录下打开文件或者目录(文件夹) */
 {
 	CH376SetFileName(name);
 	return (CH376SendCmdWaitInt(CMD0H_FILE_OPEN));
 }
 
-UINT8 CH376SeparatePath(PUINT8 path)  /* ��·���з�������һ���ļ�������Ŀ¼(�ļ���)��,�������һ���ļ�������Ŀ¼�����ֽ�ƫ�� */
+UINT8 CH376SeparatePath(PUINT8 path)  /* 从路径中分离出最后一级文件名或者目录(文件夹)名,返回最后一级文件名或者目录名的字节偏移 */
 {
 	PUINT8	pName;
 	for (pName = path; *pName != 0; ++ pName);
@@ -115,8 +114,8 @@ UINT8 CH376SeparatePath(PUINT8 path)  /* ��·���з�������һ���ļ�������Ŀ¼(��
 	return (pName - path);
 }
 
-UINT8 CH376FileOpenDir(PUINT8 PathName, UINT8 StopName)  /* �򿪶༶Ŀ¼�µ��ļ�����Ŀ¼���ϼ�Ŀ¼,֧�ֶ༶Ŀ¼·��,֧��·���ָ���,·�����Ȳ�����255���ַ� */
-/* StopName ָ�����һ���ļ�������Ŀ¼�� */
+UINT8 CH376FileOpenDir(PUINT8 PathName, UINT8 StopName)  /* 打开多级目录下的文件或者目录的上级目录,支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
+/* StopName 指向最后一级文件名或者目录名 */
 {
 	UINT8 i, s;
 	s = 0;
@@ -125,57 +124,57 @@ UINT8 CH376FileOpenDir(PUINT8 PathName, UINT8 StopName)  /* �򿪶༶Ŀ¼�µ��ļ�
 	{
 		while (PathName[i] != DEF_SEPAR_CHAR1 && PathName[i] != DEF_SEPAR_CHAR2 && PathName[i] != 0) ++ i;
 		if (PathName[i]) i ++;
-		else i = 0;  /* ·������ */
+		else i = 0;  /* 路径结束 */
 		s = CH376FileOpen(&PathName[s]);
 		if (i && i != StopName) 
-		{  /* ·����δ���� */
+		{  /* 路径尚未结束 */
 			if (s != ERR_OPEN_DIR) 
 			{
 				if (s == USB_INT_SUCCESS) return ERR_FOUND_NAME;
 				else if (s == ERR_MISS_FILE) return ERR_MISS_DIR;
-				else return s;  /* �������� */
+				else return s;  /* 操作出错 */
 			}
-			s = i;  /* ����һ��Ŀ¼��ʼ���� */
+			s = i;  /* 从下一级目录开始继续 */
 		}
-		else return s;  /* ·������,USB_INT_SUCCESSΪ�ɹ����ļ�,ERR_OPEN_DIRΪ�ɹ���Ŀ¼(�ļ���),����Ϊ�������� */
+		else return s;  /* 路径结束,USB_INT_SUCCESS为成功打开文件,ERR_OPEN_DIR为成功打开目录(文件夹),其它为操作出错 */
 	}
 }
 
-UINT8 CH376DirCreate(PUINT8 PathName)		/* �ڸ�Ŀ¼���ߵ�ǰĿ¼����Ŀ¼ */
+UINT8 CH376DirCreate(PUINT8 PathName)		/* 在根目录或者当前目录创建目录 */
 {
 	CH376SetFileName(PathName); 
 	CH376WriteVar32(VAR_CURRENT_CLUST, 0);
 	return (CH376SendCmdWaitInt(CMD0H_DIR_CREATE));		
 }
 
-UINT8 CH376FileDeletePath(PUINT8 PathName)	/* ɾ���ļ�,����Ѿ�����ֱ��ɾ��,��������ļ����ȴ���ɾ��,֧�ֶ༶Ŀ¼·�� */
+UINT8 CH376FileDeletePath(PUINT8 PathName)	/* 删除文件,如果已经打开则直接删除,否则对于文件会先打开再删除,支持多级目录路径 */
 {
 	UINT8 s;
 	if (PathName ) 
-	{  /* �ļ���δ�� */
-		for (s = 1; PathName[s] != DEF_SEPAR_CHAR1 && PathName[s] != DEF_SEPAR_CHAR2 && PathName[s] != 0; ++ s);  /* ������һ��·���ָ�������·�������� */
+	{  /* 文件尚未打开 */
+		for (s = 1; PathName[s] != DEF_SEPAR_CHAR1 && PathName[s] != DEF_SEPAR_CHAR2 && PathName[s] != 0; ++ s);  /* 搜索下一个路径分隔符或者路径结束符 */
 		if (PathName[s]) 
 		{
 			s = CH376FileOpenPath(PathName);
-			if (s != USB_INT_SUCCESS && s != ERR_OPEN_DIR) return s;  /* �������� */
+			if (s != USB_INT_SUCCESS && s != ERR_OPEN_DIR) return s;  /* 操作出错 */
 		}
-		else CH376SetFileName(PathName);  	/* û��·���ָ���,�Ǹ�Ŀ¼���ߵ�ǰĿ¼�µ��ļ�����Ŀ¼,���ý�Ҫ�������ļ����ļ��� */
+		else CH376SetFileName(PathName);  	/* 没有路径分隔符,是根目录或者当前目录下的文件或者目录,设置将要操作的文件的文件名 */
 	}
 	return (CH376SendCmdWaitInt(CMD0H_FILE_ERASE));
 }
 
-UINT8 CH376FileOpenPath(PUINT8 PathName)  	/* �򿪶༶Ŀ¼�µ��ļ�����Ŀ¼(�ļ���),֧�ֶ༶Ŀ¼·��,֧��·���ָ���,·�����Ȳ�����255���ַ� */
+UINT8 CH376FileOpenPath(PUINT8 PathName)  	/* 打开多级目录下的文件或者目录(文件夹),支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
 {
 	return (CH376FileOpenDir(PathName, 0xFF));
 }
 
-UINT8 CH376FileCreate(PUINT8 PathName)		/* �ڸ�Ŀ¼���ߵ�ǰĿ¼�����ļ� */
+UINT8 CH376FileCreate(PUINT8 PathName)		/* 在根目录或者当前目录创建文件 */
 {
 	CH376SetFileName(PathName);
 	return (CH376SendCmdWaitInt(CMD0H_FILE_CREATE));
 }
 
-UINT8 CH376FileCreatePath(PUINT8 PathName)  /* �½��༶Ŀ¼�µ��ļ�,֧�ֶ༶Ŀ¼·��,֧��·���ָ���,·�����Ȳ�����255���ַ� */
+UINT8 CH376FileCreatePath(PUINT8 PathName)  /* 新建多级目录下的文件,支持多级目录路径,支持路径分隔符,路径长度不超过255个字符 */
 {
 	UINT8 s;
 	UINT8 Name;
@@ -187,27 +186,27 @@ UINT8 CH376FileCreatePath(PUINT8 PathName)  /* �½��༶Ŀ¼�µ��ļ�,֧�ֶ༶Ŀ¼
 		{
 			if (s == USB_INT_SUCCESS) return (ERR_FOUND_NAME);
 			else if (s == ERR_MISS_FILE) return (ERR_MISS_DIR);
-			else return s;  /* �������� */
+			else return s;  /* 操作出错 */
 		}
 	}
-	return (CH376FileCreate(&PathName[Name]));  /* �ڸ�Ŀ¼���ߵ�ǰĿ¼���½��ļ� */
+	return (CH376FileCreate(&PathName[Name]));  /* 在根目录或者当前目录下新建文件 */
 }
 
-UINT8 CH376CloseFile(UINT8 param)		/* �ļ��ر� */
+UINT8 CH376CloseFile(UINT8 param)		/* 文件关闭 */
 {
 	xWriteCH376Cmd(CMD1H_FILE_CLOSE);
 	xWriteCH376Data(param);
 	return (Wait376Interrupt());
 }
 
-void CH376WriteVar8(UINT8 var, UINT8 dat)  /* дCH376оƬ�ڲ���8λ���� */
+void CH376WriteVar8(UINT8 var, UINT8 dat)  /* 写CH376芯片内部的8位变量 */
 {
 	xWriteCH376Cmd(CMD20_WRITE_VAR8);
 	xWriteCH376Data(var);
 	xWriteCH376Data(dat);
 }
 
-UINT8 CH376ReadVar8(UINT8 var)  /* ��CH376оƬ�ڲ���8λ���� */
+UINT8 CH376ReadVar8(UINT8 var)  /* 读CH376芯片内部的8位变量 */
 {
 	UINT8	c0;
 	xWriteCH376Cmd(CMD11_READ_VAR8);
@@ -216,7 +215,7 @@ UINT8 CH376ReadVar8(UINT8 var)  /* ��CH376оƬ�ڲ���8λ���� */
 	return c0;
 }
 
-void CH376WriteVar32(UINT8 var, UINT32 dat)  /* дCH376оƬ�ڲ���32λ���� */
+void CH376WriteVar32(UINT8 var, UINT32 dat)  /* 写CH376芯片内部的32位变量 */
 {
 	xWriteCH376Cmd(CMD50_WRITE_VAR32);
 	xWriteCH376Data(var);
@@ -226,14 +225,14 @@ void CH376WriteVar32(UINT8 var, UINT32 dat)  /* дCH376оƬ�ڲ���32λ���� */
 	xWriteCH376Data((UINT8)( dat >> 24 ));
 }
 
-UINT32 CH376ReadVar32(UINT8 var)  /* ��CH376оƬ�ڲ���32λ���� */
+UINT32 CH376ReadVar32(UINT8 var)  /* 读CH376芯片内部的32位变量 */
 {
 	xWriteCH376Cmd(CMD14_READ_VAR32);
 	xWriteCH376Data(var);
-	return (CH376Read32bitDat());  /* ��CH376оƬ��ȡ32λ�����ݲ��������� */
+	return (CH376Read32bitDat());  /* 从CH376芯片读取32位的数据并结束命令 */
 }
 
-UINT32 CH376Read32bitDat(void)  /* ��CH376оƬ��ȡ32λ�����ݲ��������� */
+UINT32 CH376Read32bitDat(void)  /* 从CH376芯片读取32位的数据并结束命令 */
 {
 	UINT8	c0, c1, c2, c3;
 	c0 = xReadCH376Data();
@@ -243,7 +242,7 @@ UINT32 CH376Read32bitDat(void)  /* ��CH376оƬ��ȡ32λ�����ݲ��������� */
 	return (c0 | (UINT16)c1 << 8 | (UINT32)c2 << 16 | (UINT32)c3 << 24);
 }
 
-void CH376Write32bitDat(UINT32 mData)  /* ��CH376оƬ����32λ�����ݲ��������� */
+void CH376Write32bitDat(UINT32 mData)  /* 向CH376芯片发送32位的数据并结束命令 */
 {
 	xWriteCH376Data((UINT8)mData);
 	xWriteCH376Data((UINT8)(mData >> 8));
@@ -251,18 +250,18 @@ void CH376Write32bitDat(UINT32 mData)  /* ��CH376оƬ����32λ�����ݲ��������� */
 	xWriteCH376Data((UINT8)(mData >> 24));
 }
 
-void CH376EndDirInfo(void)  /* �ڵ���CH376DirInfoRead��ȡFAT_DIR_INFO�ṹ֮��Ӧ��֪ͨCH376���� */
+void CH376EndDirInfo(void)  /* 在调用CH376DirInfoRead获取FAT_DIR_INFO结构之后应该通知CH376结束 */
 {
 	CH376WriteVar8(0x0D, 0x00);
 }
 
-UINT8 CH376SendCmdWaitInt(UINT8 mCmd)  /* �����������,�ȴ��ж� */
+UINT8 CH376SendCmdWaitInt(UINT8 mCmd)  /* 发出命令码后,等待中断 */
 {
 	xWriteCH376Cmd(mCmd);
 	return (Wait376Interrupt());
 }
 
-UINT8 CH376GetIntStatus(void)  /* ��ȡ�ж�״̬��ȡ���ж����� */
+UINT8 CH376GetIntStatus(void)  /* 获取中断状态并取消中断请求 */
 {
 	UINT8 i, Data;
 	xWriteCH376Cmd(CMD01_GET_STATUS);
@@ -274,35 +273,35 @@ UINT8 CH376GetIntStatus(void)  /* ��ȡ�ж�״̬��ȡ���ж����� */
 	return Data;
 }
 
-UINT8 CH376DiskConnect(void)  /* ���U���Ƿ�����,��֧��SD�� */
+UINT8 CH376DiskConnect(void)  /* 检查U盘是否连接,不支持SD卡 */
 {
 	return (CH376SendCmdWaitInt(CMD0H_DISK_CONNECT));
 }
 
-UINT8 CH376DiskReqSense(void)  /* ���USB�洢������ */
+UINT8 CH376DiskReqSense(void)  /* 检查USB存储器错误 */
 {
 	UINT8	s;;
 	s = CH376SendCmdWaitInt(CMD0H_DISK_R_SENSE);
 	return s;
 }
 
-UINT8 CH376DiskMount(void)  /* ��ʼ�����̲����Դ����Ƿ���� */
+UINT8 CH376DiskMount(void)  /* 初始化磁盘并测试磁盘是否就绪 */
 {
 	return (CH376SendCmdWaitInt(CMD0H_DISK_MOUNT));
 }
 
-UINT8 CH376GetDiskStatus(void)  /* ��ȡ���̺��ļ�ϵͳ�Ĺ���״̬ */
+UINT8 CH376GetDiskStatus(void)  /* 获取磁盘和文件系统的工作状态 */
 {
 	return (CH376ReadVar8(VAR_DISK_STATUS));
 }
 
-UINT32 CH376GetFileSize(void)  /* ��ȡ��ǰ�ļ����� */
+UINT32 CH376GetFileSize(void)  /* 读取当前文件长度 */
 {
 	return(CH376ReadVar32(VAR_FILE_SIZE));
 }
 
 UINT8 CH376SectorWrite(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)	
-/* ������Ϊ��λ�ڵ�ǰλ��д�����ݿ�,��֧��SD�� */
+/* 以扇区为单位在当前位置写入数据块,不支持SD卡 */
 {
 	UINT8 	s, cnt;
 	UINT32	StaSec;
@@ -316,7 +315,7 @@ UINT8 CH376SectorWrite(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)
 		if(USB_INT_SUCCESS != s) return s;
 		xWriteCH376Cmd(CMD01_RD_USB_DATA0);
 		xReadCH376Data();
-		cnt = xReadCH376Data();				/* ��д������ */
+		cnt = xReadCH376Data();				/* 可写扇区数 */
 		xReadCH376Data();
 		xReadCH376Data();
 		xReadCH376Data();
@@ -333,7 +332,7 @@ UINT8 CH376SectorWrite(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)
 	return s;
 }
 
-UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)		/* ������Ϊ��λ�ӵ�ǰλ�ö�ȡ���ݿ�,��֧��SD�� */
+UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)		/* 以扇区为单位从当前位置读取数据块,不支持SD卡 */
 {
 	UINT8	s, cnt;
 	UINT32	StaSec;
@@ -345,14 +344,14 @@ UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)		/* ������Ϊ
 		s = Wait376Interrupt();
 		if (s != USB_INT_SUCCESS) return s;
 		xWriteCH376Cmd(CMD01_RD_USB_DATA0);
-		xReadCH376Data();						/* ��������sizeof(CH376_CMD_DATA.SectorRead) */
+		xReadCH376Data();						/* 长度总是sizeof(CH376_CMD_DATA.SectorRead) */
 		cnt = xReadCH376Data();					/* CH376_CMD_DATA.SectorRead.mSectorCount */
 		xReadCH376Data();
 		xReadCH376Data();
 		xReadCH376Data();
-		StaSec = CH376Read32bitDat();			/* CH376_CMD_DATA.SectorRead.mStartSector,��CH376оƬ��ȡ32λ�����ݲ��������� */
+		StaSec = CH376Read32bitDat();			/* CH376_CMD_DATA.SectorRead.mStartSector,从CH376芯片读取32位的数据并结束命令 */
 		if (cnt == 0) break;
-		s = CH376DiskReadSec(buf, StaSec, cnt);	/* ��U�̶�ȡ������������ݿ鵽������ */
+		s = CH376DiskReadSec(buf, StaSec, cnt);	/* 从U盘读取多个扇区的数据块到缓冲区 */
 		if (s != USB_INT_SUCCESS) return s;
 		buf += cnt * DEF_SECTOR_SIZE;
 		if (RealCount) *RealCount += cnt;
@@ -362,26 +361,26 @@ UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount)		/* ������Ϊ
 	return s;
 }
 
-UINT8 CH376SecLocate(UINT32 offset)		//������Ϊ��λ�ƶ���ǰ�ļ�ָ��
-										//����ƫ����0��ʾ���ļ�ָ���ƶ����ļ���ͷ
-										//����ƫ����FFFFFFFFH��ʾ���ļ�ָ���ƶ����ļ�ĩβ ���ֻ�ܵ�0X00FF FFFF
+UINT8 CH376SecLocate(UINT32 offset)		//以扇区为单位移动当前文件指针
+										//扇区偏移量0表示将文件指针移动到文件开头
+										//扇区偏移量FFFFFFFFH表示将文件指针移动到文件末尾 最大只能到0X00FF FFFF
 {
 	xWriteCH376Cmd(CMD4H_SEC_LOCATE);
 	xWriteCH376Data((UINT8)offset);
 	xWriteCH376Data((UINT8)((UINT16)offset>>8));
 	xWriteCH376Data((UINT8)(offset>>16));
-	xWriteCH376Data(0);  /* ��������ļ��ߴ� */
+	xWriteCH376Data(0);  /* 超出最大文件尺寸 */
 	return (Wait376Interrupt());
 }
 
 UINT8 CH376DiskWriteSec(PUINT8 buf, UINT32 iLbaStart, UINT8 iSectorCount)  
-/* ���������еĶ�����������ݿ�д��U��,��֧��SD�� */
-/* iLbaStart ��д�������ʼ��������, iSectorCount ��д��������� */
+/* 将缓冲区中的多个扇区的数据块写入U盘,不支持SD卡 */
+/* iLbaStart 是写入的线起始性扇区号, iSectorCount 是写入的扇区数 */
 {
 	UINT8	s, err;
 	UINT16	mBlockCount;
 	for (err = 0; err != 3; ++ err) 
-	{  /* �������� */  	
+	{  /* 出错重试 */  	
 		xWriteCH376Cmd(CMD5H_DISK_WRITE);
 		xWriteCH376Data((UINT8)iLbaStart);
 		xWriteCH376Data((UINT8)((UINT16)iLbaStart >> 8));
@@ -393,62 +392,62 @@ UINT8 CH376DiskWriteSec(PUINT8 buf, UINT32 iLbaStart, UINT8 iSectorCount)
 			s = Wait376Interrupt(); 
 			if ( s == USB_INT_DISK_WRITE) 
 			{
-				CH376WriteHostBlock(buf, CH376_DAT_BLOCK_LEN);  /* ��USB�����˵�ķ��ͻ�����д�����ݿ� */
+				CH376WriteHostBlock(buf, CH376_DAT_BLOCK_LEN);  /* 向USB主机端点的发送缓冲区写入数据块 */
 				xWriteCH376Cmd(CMD0H_DISK_WR_GO);
 				buf += CH376_DAT_BLOCK_LEN;
 			}
-			else break;  /* ���ش���״̬ */
+			else break;  /* 返回错误状态 */
 		}
 		if (mBlockCount == 0) 
 		{
-			s = Wait376Interrupt();  /* �ȴ��жϲ���ȡ״̬ */
-			if (s == USB_INT_SUCCESS) return USB_INT_SUCCESS;  /* �����ɹ� */
+			s = Wait376Interrupt();  /* 等待中断并获取状态 */
+			if (s == USB_INT_SUCCESS) return USB_INT_SUCCESS;  /* 操作成功 */
 		}
-		if (s == USB_INT_DISCONNECT) return s;  /* U�̱��Ƴ� */
-		CH376DiskReqSense();  /* ���USB�洢������ */
+		if (s == USB_INT_DISCONNECT) return s;  /* U盘被移除 */
+		CH376DiskReqSense();  /* 检查USB存储器错误 */
 	}
-	return s;  /* ����ʧ�� */
+	return s;  /* 操作失败 */
 }
 
-UINT8 CH376DiskReadSec(PUINT8 buf, UINT32 iLbaStart, UINT8 iSectorCount)  /* ��U�̶�ȡ������������ݿ鵽������,��֧��SD�� */
-/* iLbaStart ��׼����ȡ��������ʼ������, iSectorCount ��׼����ȡ�������� */
+UINT8 CH376DiskReadSec(PUINT8 buf, UINT32 iLbaStart, UINT8 iSectorCount)  /* 从U盘读取多个扇区的数据块到缓冲区,不支持SD卡 */
+/* iLbaStart 是准备读取的线性起始扇区号, iSectorCount 是准备读取的扇区数 */
 {
 	UINT8	s, err;
 	UINT16	mBlockCount;
 	for (err = 0; err != 3; ++err)
-	{  /* �������� */
-		xWriteCH376Cmd(CMD5H_DISK_READ);  /* ��USB�洢�������� */
-		xWriteCH376Data((UINT8)iLbaStart);  /* LBA�����8λ */
+	{  /* 出错重试 */
+		xWriteCH376Cmd(CMD5H_DISK_READ);  /* 从USB存储器读扇区 */
+		xWriteCH376Data((UINT8)iLbaStart);  /* LBA的最低8位 */
 		xWriteCH376Data((UINT8)((UINT16)iLbaStart >> 8));
 		xWriteCH376Data((UINT8)(iLbaStart >> 16));
-		xWriteCH376Data((UINT8)(iLbaStart >> 24));  /* LBA�����8λ */
-		xWriteCH376Data(iSectorCount);  /* ������ */
+		xWriteCH376Data((UINT8)(iLbaStart >> 24));  /* LBA的最高8位 */
+		xWriteCH376Data(iSectorCount);  /* 扇区数 */
 		for (mBlockCount = iSectorCount * DEF_SECTOR_SIZE / CH376_DAT_BLOCK_LEN; mBlockCount != 0; --mBlockCount)
-		{  /* ���ݿ���� */
-			s = Wait376Interrupt();  /* �ȴ��жϲ���ȡ״̬ */
+		{  /* 数据块计数 */
+			s = Wait376Interrupt();  /* 等待中断并获取状态 */
 			if (s == USB_INT_DISK_READ)
-			{  /* USB�洢�������ݿ�,�������ݶ��� */
-				s = CH376ReadBlock(buf);  /* �ӵ�ǰ�����˵�Ľ��ջ�������ȡ���ݿ�,���س��� */
-				xWriteCH376Cmd(CMD0H_DISK_RD_GO);  /* ����ִ��USB�洢���Ķ����� */
+			{  /* USB存储器读数据块,请求数据读出 */
+				s = CH376ReadBlock(buf);  /* 从当前主机端点的接收缓冲区读取数据块,返回长度 */
+				xWriteCH376Cmd(CMD0H_DISK_RD_GO);  /* 继续执行USB存储器的读操作 */
 				buf += s;
 			}
-			else break;  /* ���ش���״̬ */
+			else break;  /* 返回错误状态 */
 		}
 		if (mBlockCount == 0)
 		{
-			s = Wait376Interrupt();  /* �ȴ��жϲ���ȡ״̬ */
-			if (s == USB_INT_SUCCESS) return USB_INT_SUCCESS;  /* �����ɹ� */
+			s = Wait376Interrupt();  /* 等待中断并获取状态 */
+			if (s == USB_INT_SUCCESS) return USB_INT_SUCCESS;  /* 操作成功 */
 		}
-		if (s == USB_INT_DISCONNECT) return s;  /* U�̱��Ƴ� */
-		CH376DiskReqSense();  /* ���USB�洢������ */
+		if (s == USB_INT_DISCONNECT) return s;  /* U盘被移除 */
+		CH376DiskReqSense();  /* 检查USB存储器错误 */
 	}
-	return s;  /* ����ʧ�� */
+	return s;  /* 操作失败 */
 }
 
-void CH376WriteHostBlock(PUINT8 buf, UINT8 len)  /* ��USB�����˵�ķ��ͻ�����д�����ݿ� */
+void CH376WriteHostBlock(PUINT8 buf, UINT8 len)  /* 向USB主机端点的发送缓冲区写入数据块 */
 {
 	xWriteCH376Cmd(CMD10_WR_HOST_DATA);
-	xWriteCH376Data(len);  /* ���� */
+	xWriteCH376Data(len);  /* 长度 */
 	if (len) 
 	{
 		do 
@@ -460,7 +459,7 @@ void CH376WriteHostBlock(PUINT8 buf, UINT8 len)  /* ��USB�����˵�ķ��ͻ�����д�
 	}
 }
 
-UINT8 CH376ReadBlock(PUINT8 buf)  /* �ӵ�ǰ�����˵�Ľ��ջ�������ȡ���ݿ�,���س��� */
+UINT8 CH376ReadBlock(PUINT8 buf)  /* 从当前主机端点的接收缓冲区读取数据块,返回长度 */
 {
 	UINT8 s, l;
 	xWriteCH376Cmd(CMD01_RD_USB_DATA0);
@@ -477,14 +476,14 @@ UINT8 CH376ReadBlock(PUINT8 buf)  /* �ӵ�ǰ�����˵�Ľ��ջ�������ȡ���ݿ�,���س�
 	return s;
 }
 
-UINT8 CH376DiskQuery(PUINT32 DiskFree) 		/* ��ѯ����ʣ��ռ���Ϣ��������	*/
+UINT8 CH376DiskQuery(PUINT32 DiskFree) 		/* 查询磁盘剩余空间信息，扇区数	*/
 {
 	UINT8	s, c0, c1, c2, c3;
 	s = CH376SendCmdWaitInt(CMD0H_DISK_QUERY);
 	if (s == USB_INT_SUCCESS) 
 	{
 		xWriteCH376Cmd(CMD01_RD_USB_DATA0);
-		xReadCH376Data();  // ��������sizeof
+		xReadCH376Data();  // 长度总是sizeof
 		xReadCH376Data();  // DiskQuery.mTotalSector
 		xReadCH376Data();
 		xReadCH376Data();
@@ -500,21 +499,21 @@ UINT8 CH376DiskQuery(PUINT32 DiskFree) 		/* ��ѯ����ʣ��ռ���Ϣ��������	*/
 	return s;
 }
 
-UINT8 CH376DiskCapacity(PUINT32 DiskCap)  /* ��ѯ������������,������ */
+UINT8 CH376DiskCapacity(PUINT32 DiskCap)  /* 查询磁盘物理容量,扇区数 */
 {
 	UINT8	s;
 	s = CH376SendCmdWaitInt(CMD0H_DISK_CAPACITY);
 	if (s == USB_INT_SUCCESS) 
 	{
 		xWriteCH376Cmd(CMD01_RD_USB_DATA0);
-		xReadCH376Data();  /* ��������sizeof(CH376_CMD_DATA.DiskCapacity) */
-		*DiskCap = CH376Read32bitDat();  /* CH376_CMD_DATA.DiskCapacity.mDiskSizeSec,��CH376оƬ��ȡ32λ�����ݲ��������� */
+		xReadCH376Data();  /* 长度总是sizeof(CH376_CMD_DATA.DiskCapacity) */
+		*DiskCap = CH376Read32bitDat();  /* CH376_CMD_DATA.DiskCapacity.mDiskSizeSec,从CH376芯片读取32位的数据并结束命令 */
 	}
 	else *DiskCap = 0;
 	return s;
 }
 
-UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* ƥ���ļ� */
+UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* 匹配文件 */
 {
 	UINT8 s, FileCount, i;
 	UINT8 xdata pBuf[64];
@@ -522,7 +521,7 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* ƥ
 	P_FAT_DIR_INFO pDir;
 	if (NULL == String) return (DWIN_NULL_POINT);
 	s = CH376FileOpenPath(PathName);
-	if (ERR_OPEN_DIR != s) return s;		/* �򿪵Ĳ���Ŀ¼����Ŀ¼������ */	
+	if (ERR_OPEN_DIR != s) return s;		/* 打开的不是目录或者目录不存在 */	
 	CH376SetFileName(String);
 	xWriteCH376Cmd(CMD0H_FILE_OPEN);
 	for (FileCount = 0; FileCount < DIR_FILE_MAX; FileCount++)
@@ -533,18 +532,18 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* ƥ
 			CH376ReadBlock(pBuf);
 			xWriteCH376Cmd(CMD0H_FILE_ENUM_GO);
 			pDir = (P_FAT_DIR_INFO)pBuf;
-			if (pDir -> DIR_Name[0] == '.') continue;	/* . .. ֱ������ */
+			if (pDir -> DIR_Name[0] == '.') continue;	/* . .. 直接跳过 */
 			if (pDir -> DIR_Name[0] == 0x05) pDir -> DIR_Name[0] = 0xE5;
 			pNameBuf = MatchLish -> NAME;
-			for (i = 0; i < 11; i++)					/* ת���ɱ�׼�ļ��� */
+			for (i = 0; i < 11; i++)					/* 转换成标准文件名 */
 			{
 				if (pDir -> DIR_Name[i] != 0x20) 
-				{  /* ��Ч�ַ� */
+				{  /* 有效字符 */
 					if (i == 8) 
 					{
 						*pNameBuf++ = '.';
 					}
-					*pNameBuf = pDir -> DIR_Name[i];  /* �����ļ�����һ���ַ� */
+					*pNameBuf = pDir -> DIR_Name[i];  /* 复制文件名的一个字符 */
 					pNameBuf++;
 				}
 			}
@@ -552,7 +551,7 @@ UINT8 CH376MatchFile(PUINT8 String, PUINT8 PathName, P_FAT_NAME MatchLish)	/* ƥ
 			MatchLish -> FILE_SIZE = pDir -> DIR_FileSize;
 			MatchLish++;
 		}
-		else if (ERR_MISS_FILE == s) break;		/* û���ҵ������ƥ���ļ� */ 		
+		else if (ERR_MISS_FILE == s) break;		/* 没有找到更多的匹配文件 */ 		
 	}
 	if (DIR_FILE_MAX == FileCount)  CH376EndDirInfo();
 	return s;
@@ -580,7 +579,7 @@ UINT8 CH376GetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	}
 	CH376ReadBlock(Buf);
 	pFile = (P_FAT_DIR_INFO)Buf;
-	/* ���ݴ��С�˶��� ��Ϊ��˶����DGUS��Ӧ */
+	/* 数据存放小端对齐 改为大端对齐和DGUS对应 */
 	pDir -> DIR_Attr 		=	(pFile -> DIR_Attr) ;
 	pDir -> DIR_CrtTime 	=	(pFile -> DIR_CrtTime << 8) | (pFile -> DIR_CrtTime >> 8);
 	pDir -> DIR_CrtDate 	=	(pFile -> DIR_CrtDate << 8) | (pFile -> DIR_CrtDate >> 8);
@@ -605,11 +604,11 @@ UINT8 CH376SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 	xWriteCH376Cmd(CMD1H_DIR_INFO_READ);
 	xWriteCH376Data(0xFF);
 	Status = Wait376Interrupt();
-	xWriteCH376Cmd(CMD20_WR_OFS_DATA);	/* ������CH376�ڲ�������д���������� */
-	/* 1�����޸���Ϣ���͵�BUF������ */
-	/* 2������ƫ�Ƶ�ַ */
-	/* 3��д��������ݳ��� */
-	/* 4����д���8λ���� ��д���8λ���� */
+	xWriteCH376Cmd(CMD20_WR_OFS_DATA);	/* 发送向CH376内部缓冲区写入数据命令 */
+	/* 1、将修改信息发送到BUF缓冲区 */
+	/* 2、发送偏移地址 */
+	/* 3、写入后续数据长度 */
+	/* 4、先写入低8位数据 再写入高8位数据 */
 	if (pDir -> DIR_Attr != 0)
 	{
 		pFile -> DIR_Attr =  pDir -> DIR_Attr;
@@ -649,17 +648,17 @@ UINT8 CH376SetFileMessage(PUINT8 pFilePath, P_FAT_DIR_INFO pDir)
 		xWriteCH376Data(pFile -> DIR_WrtDate);
 		xWriteCH376Data(pFile -> DIR_WrtDate >> 8);
 	}
-	xWriteCH376Cmd(CMD0H_DIR_INFO_SAVE);	/* ���ͱ����ļ�Ŀ¼��Ϣ���� */
+	xWriteCH376Cmd(CMD0H_DIR_INFO_SAVE);	/* 发送保存文件目录信息命令 */
 	Status = Wait376Interrupt();
 	CH376CloseFile(0);
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
 	return DWIN_OK;	
 }
-UINT8 CH376WriteReqBlock(PUINT8 pbuf)  /* ���ڲ�ָ��������д����������ݿ�,���س��� */
+UINT8 CH376WriteReqBlock(PUINT8 pbuf)  /* 向内部指定缓冲区写入请求的数据块,返回长度 */
 {
 	UINT8	s, l;
 	xWriteCH376Cmd(CMD01_WR_REQ_DATA);
-	s = l = xReadCH376Data();  /* ���� */
+	s = l = xReadCH376Data();  /* 长度 */
 	if (l) 
 	{
 		do 
@@ -671,7 +670,7 @@ UINT8 CH376WriteReqBlock(PUINT8 pbuf)  /* ���ڲ�ָ��������д����������ݿ�,���س
 	}
 	return s;
 }
-UINT8 CH376CheckNameSum(PUINT8 pDirName)  /* ���㳤�ļ����Ķ��ļ��������,����Ϊ��С����ָ����Ĺ̶�11�ֽڸ�ʽ */
+UINT8 CH376CheckNameSum(PUINT8 pDirName)  /* 计算长文件名的短文件名检验和,输入为无小数点分隔符的固定11字节格式 */
 {
 	UINT8 NameLen;
 	UINT8 CheckSum;
@@ -680,7 +679,7 @@ UINT8 CH376CheckNameSum(PUINT8 pDirName)  /* ���㳤�ļ����Ķ��ļ��������,����Ϊ
 		CheckSum = (CheckSum & 1 ? 0x80 : 0x00) + (CheckSum >> 1) + *pDirName++;
 	return CheckSum;
 }
-UINT8 CH376ByteLocate(UINT32 offset)  /* ���ֽ�Ϊ��λ�ƶ���ǰ�ļ�ָ�� */
+UINT8 CH376ByteLocate(UINT32 offset)  /* 以字节为单位移动当前文件指针 */
 {
 	xWriteCH376Cmd(CMD4H_BYTE_LOCATE);
 	xWriteCH376Data((UINT8)offset);
@@ -689,7 +688,7 @@ UINT8 CH376ByteLocate(UINT32 offset)  /* ���ֽ�Ϊ��λ�ƶ���ǰ�ļ�ָ�� */
 	xWriteCH376Data((UINT8)(offset>>24));
 	return Wait376Interrupt();
 }
-UINT8 CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount)  /* ���ֽ�Ϊ��λ�ӵ�ǰλ�ö�ȡ���ݿ� */
+UINT8 CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount)  /* 以字节为单位从当前位置读取数据块 */
 {
 	UINT8 s;
 	xWriteCH376Cmd(CMD2H_BYTE_READ);
@@ -701,38 +700,38 @@ UINT8 CH376ByteRead(PUINT8 pbuf, UINT16 ReqCount, PUINT16 pRealCount)  /* ���ֽ�
 		s = Wait376Interrupt();
 		if (s == USB_INT_DISK_READ) 
 		{
-			s = CH376ReadBlock(pbuf);  /* �ӵ�ǰ�����˵�Ľ��ջ�������ȡ���ݿ�,���س��� */
+			s = CH376ReadBlock(pbuf);  /* 从当前主机端点的接收缓冲区读取数据块,返回长度 */
 			xWriteCH376Cmd(CMD0H_BYTE_RD_GO);
 			pbuf += s;
 			if (pRealCount) *pRealCount += s;
 		}
-		else return s;  /* ���� */
+		else return s;  /* 错误 */
 	}
 }
-UINT8 CH376LocateInUpDir(PUINT8 pPathName)  /* ���ϼ�Ŀ¼(�ļ���)���ƶ��ļ�ָ�뵽��ǰ�ļ�Ŀ¼��Ϣ���ڵ����� */
+UINT8 CH376LocateInUpDir(PUINT8 pPathName)  /* 在上级目录(文件夹)中移动文件指针到当前文件目录信息所在的扇区 */
 {
 	UINT8	s;
 	xWriteCH376Cmd(CMD14_READ_VAR32);
-	xWriteCH376Data(VAR_FAT_DIR_LBA);  /* ��ǰ�ļ�Ŀ¼��Ϣ���ڵ�����LBA��ַ */
-	for (s = 4; s != 8; s ++) GlobalBuf[s] = xReadCH376Data();  /* ��ʱ������ȫ�ֻ�������,��ԼRAM */
-	s = CH376SeparatePath(pPathName);  /* ��·���з�������һ���ļ�������Ŀ¼��,�������һ���ļ�������Ŀ¼����ƫ�� */
-	if (s) s = CH376FileOpenDir(pPathName, s);  /* �Ƕ༶Ŀ¼,�򿪶༶Ŀ¼�µ����һ��Ŀ¼,�����ļ����ϼ�Ŀ¼ */
-	else s = CH376FileOpen("/");  /* ��Ŀ¼�µ��ļ�,��򿪸�Ŀ¼ */
+	xWriteCH376Data(VAR_FAT_DIR_LBA);  /* 当前文件目录信息所在的扇区LBA地址 */
+	for (s = 4; s != 8; s ++) GlobalBuf[s] = xReadCH376Data();  /* 临时保存于全局缓冲区中,节约RAM */
+	s = CH376SeparatePath(pPathName);  /* 从路径中分离出最后一级文件名或者目录名,返回最后一级文件名或者目录名的偏移 */
+	if (s) s = CH376FileOpenDir(pPathName, s);  /* 是多级目录,打开多级目录下的最后一级目录,即打开文件的上级目录 */
+	else s = CH376FileOpen("/");  /* 根目录下的文件,则打开根目录 */
 	if (s != ERR_OPEN_DIR) return s;
-	*(PUINT32)(&GlobalBuf[0]) = 0;  /* Ŀ¼����ƫ��������,������ȫ�ֻ�������,��ԼRAM */
+	*(PUINT32)(&GlobalBuf[0]) = 0;  /* 目录扇区偏移扇区数,保存在全局缓冲区中,节约RAM */
 	while (1) 
-	{  /* �����ƶ��ļ�ָ��,ֱ���뵱ǰ�ļ�Ŀ¼��Ϣ���ڵ�����LBA��ַƥ�� */
-		s = CH376SecLocate(*(PUINT32)(&GlobalBuf[0]));  /* ������Ϊ��λ���ϼ�Ŀ¼���ƶ��ļ�ָ�� */
+	{  /* 不断移动文件指针,直到与当前文件目录信息所在的扇区LBA地址匹配 */
+		s = CH376SecLocate(*(PUINT32)(&GlobalBuf[0]));  /* 以扇区为单位在上级目录中移动文件指针 */
 		if (s != USB_INT_SUCCESS) return s;
-		CH376ReadBlock(&GlobalBuf[8]);  /* ���ڴ滺������ȡCH376_CMD_DATA.SectorLocate.mSectorLba���ݿ�,���س�������sizeof(CH376_CMD_DATA.SectorLocate) */
-		if (*(PUINT32)(&GlobalBuf[8]) == *(PUINT32)(&GlobalBuf[4])) return USB_INT_SUCCESS;  /* �ѵ���ǰ�ļ�Ŀ¼��Ϣ���� */
+		CH376ReadBlock(&GlobalBuf[8]);  /* 从内存缓冲区读取CH376_CMD_DATA.SectorLocate.mSectorLba数据块,返回长度总是sizeof(CH376_CMD_DATA.SectorLocate) */
+		if (*(PUINT32)(&GlobalBuf[8]) == *(PUINT32)(&GlobalBuf[4])) return USB_INT_SUCCESS;  /* 已到当前文件目录信息扇区 */
 		xWriteCH376Cmd(CMD50_WRITE_VAR32);
-		xWriteCH376Data(VAR_FAT_DIR_LBA);  /* �õ�ǰһ������,����Ϊ�µ��ļ�Ŀ¼��Ϣ����LBA��ַ */
+		xWriteCH376Data(VAR_FAT_DIR_LBA);  /* 得到前一个扇区,设置为新的文件目录信息扇区LBA地址 */
 		for (s = 8; s != 12; s ++) xWriteCH376Data(GlobalBuf[s]);
 		++*(PUINT32)(&GlobalBuf[0]);
 	}
 }
-UINT8 CH376LongNameWrite(PUINT8 pbuf, UINT16 ReqCount)  /* ���ļ���ר�õ��ֽ�д�ӳ��� */
+UINT8 CH376LongNameWrite(PUINT8 pbuf, UINT16 ReqCount)  /* 长文件名专用的字节写子程序 */
 {
 	UINT8 s;
 	xWriteCH376Cmd(CMD2H_BYTE_WRITE);
@@ -743,118 +742,118 @@ UINT8 CH376LongNameWrite(PUINT8 pbuf, UINT16 ReqCount)  /* ���ļ���ר�õ��ֽ�д�
 		s = Wait376Interrupt();
 		if (s == USB_INT_DISK_WRITE) 
 		{
-			if (pbuf) pbuf += CH376WriteReqBlock(pbuf);  /* ���ڲ�ָ��������д����������ݿ�,���س��� */
+			if (pbuf) pbuf += CH376WriteReqBlock(pbuf);  /* 向内部指定缓冲区写入请求的数据块,返回长度 */
 			else 
 			{
-				xWriteCH376Cmd(CMD01_WR_REQ_DATA);  /* ���ڲ�ָ��������д����������ݿ� */
-				s = xReadCH376Data();  /* ���� */
-				while (s--) xWriteCH376Data(0);  /* ���0 */
+				xWriteCH376Cmd(CMD01_WR_REQ_DATA);  /* 向内部指定缓冲区写入请求的数据块 */
+				s = xReadCH376Data();  /* 长度 */
+				while (s--) xWriteCH376Data(0);  /* 填充0 */
 			}
 			xWriteCH376Cmd(CMD0H_BYTE_WR_GO);
 		}
-		else return s;  /* ���� */
+		else return s;  /* 错误 */
 	}
 }
-UINT8 CH376CreateLongName(PUINT8 pPathName, PUINT8 pLongName)  /* �½����г��ļ������ļ�,�ر��ļ��󷵻�,LongName����·��������RAM�� */
+UINT8 CH376CreateLongName(PUINT8 pPathName, PUINT8 pLongName)  /* 新建具有长文件名的文件,关闭文件后返回,LongName输入路径必须在RAM中 */
 {
 	UINT8 s, i;
-	UINT8 DirBlockCnt;		/* ���ļ���ռ���ļ�Ŀ¼�ṹ�ĸ��� */
-	UINT16 count;			/* ��ʱ����,���ڼ���,�����ֽڶ��ļ���ʽ��ʵ�ʶ�ȡ���ֽ��� */
-	UINT16 NameCount;		/* ���ļ����ֽڼ��� */
-	UINT32 NewFileLoc;		/* ��ǰ�ļ�Ŀ¼��Ϣ���ϼ�Ŀ¼�е���ʼλ��,ƫ�Ƶ�ַ */
-	for (count = 0; count < LONG_NAME_BUF_LEN; count += 2) if (*(PUINT16)(&pLongName[count]) == 0) break;  /* ������λ�� */
-	if (count == 0 || count >= LONG_NAME_BUF_LEN || count > LONE_NAME_MAX_CHAR) return ERR_LONG_NAME_ERR;  /* ���ļ�����Ч */
-	DirBlockCnt = count / LONG_NAME_PER_DIR;  /* ���ļ���ռ���ļ�Ŀ¼�ṹ�ĸ��� */
+	UINT8 DirBlockCnt;		/* 长文件名占用文件目录结构的个数 */
+	UINT16 count;			/* 临时变量,用于计数,用于字节读文件方式下实际读取的字节数 */
+	UINT16 NameCount;		/* 长文件名字节计数 */
+	UINT32 NewFileLoc;		/* 当前文件目录信息在上级目录中的起始位置,偏移地址 */
+	for (count = 0; count < LONG_NAME_BUF_LEN; count += 2) if (*(PUINT16)(&pLongName[count]) == 0) break;  /* 到结束位置 */
+	if (count == 0 || count >= LONG_NAME_BUF_LEN || count > LONE_NAME_MAX_CHAR) return ERR_LONG_NAME_ERR;  /* 长文件名无效 */
+	DirBlockCnt = count / LONG_NAME_PER_DIR;  /* 长文件名占用文件目录结构的个数 */
 	i = count - DirBlockCnt * LONG_NAME_PER_DIR;
 	if (i) 
-	{  /* ����ͷ */
-		if (++DirBlockCnt * LONG_NAME_PER_DIR > LONG_NAME_BUF_LEN) return ERR_LONG_BUF_OVER;  /* ��������� */
-		count += 2;  /* ����0��������ĳ��� */
+	{  /* 有零头 */
+		if (++DirBlockCnt * LONG_NAME_PER_DIR > LONG_NAME_BUF_LEN) return ERR_LONG_BUF_OVER;  /* 缓冲区溢出 */
+		count += 2;  /* 加上0结束符后的长度 */
 		i += 2;
 		if (i < LONG_NAME_PER_DIR) 
-		{  /* ��ĩ���ļ�Ŀ¼�ṹ���� */
-			while (i++ < LONG_NAME_PER_DIR) pLongName[count++] = 0xFF;  /* ��ʣ��������Ϊ0xFF */
+		{  /* 最末的文件目录结构不满 */
+			while (i++ < LONG_NAME_PER_DIR) pLongName[count++] = 0xFF;  /* 把剩余数据填为0xFF */
 		}
 	}
-	s = CH376FileOpenPath(pPathName);  /* �򿪶༶Ŀ¼�µ��ļ� */
+	s = CH376FileOpenPath(pPathName);  /* 打开多级目录下的文件 */
 	if (s == USB_INT_SUCCESS) 
-	{   /* ���ļ��������򷵻ش��� */
+	{   /* 短文件名存在则返回错误 */
 		s = ERR_NAME_EXIST;
 		goto CH376CreateLongNameE;
 	}
 	if (s != ERR_MISS_FILE) return s;
-	s = CH376FileCreatePath(pPathName);  /* �½��༶Ŀ¼�µ��ļ� */
+	s = CH376FileCreatePath(pPathName);  /* 新建多级目录下的文件 */
 	if (s != USB_INT_SUCCESS) return s;
-	i = CH376ReadVar8(VAR_FILE_DIR_INDEX);  /* ��ʱ���ڱ��浱ǰ�ļ�Ŀ¼��Ϣ�������ڵ������� */
-	s = CH376LocateInUpDir(pPathName);  /* ���ϼ�Ŀ¼���ƶ��ļ�ָ�뵽��ǰ�ļ�Ŀ¼��Ϣ���ڵ����� */
-	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;  /* û��ֱ�ӷ�������Ϊ����Ǵ��˸�Ŀ¼��ô����Ҫ�رպ���ܷ��� */
-	NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET) + i * sizeof(FAT_DIR_INFO);  /* ���㵱ǰ�ļ�Ŀ¼��Ϣ���ϼ�Ŀ¼�е���ʼλ��,ƫ�Ƶ�ַ */
-	s = CH376ByteLocate(NewFileLoc);  /* ���ϼ�Ŀ¼���ƶ��ļ�ָ�뵽��ǰ�ļ�Ŀ¼��Ϣ��λ�� */
+	i = CH376ReadVar8(VAR_FILE_DIR_INDEX);  /* 临时用于保存当前文件目录信息在扇区内的索引号 */
+	s = CH376LocateInUpDir(pPathName);  /* 在上级目录中移动文件指针到当前文件目录信息所在的扇区 */
+	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;  /* 没有直接返回是因为如果是打开了根目录那么必须要关闭后才能返回 */
+	NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET) + i * sizeof(FAT_DIR_INFO);  /* 计算当前文件目录信息在上级目录中的起始位置,偏移地址 */
+	s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
 	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
-	s = CH376ByteRead(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO), NULL);  /* ���ֽ�Ϊ��λ��ȡ����,��õ�ǰ�ļ���Ŀ¼��ϢFAT_DIR_INFO */
+	s = CH376ByteRead(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO), NULL);  /* 以字节为单位读取数据,获得当前文件的目录信息FAT_DIR_INFO */
 	if ( s != USB_INT_SUCCESS ) goto CH376CreateLongNameE;
 	for (i = DirBlockCnt; i != 0; --i) 
-	{  /* �������е��ļ�Ŀ¼�ṹ���ڴ�ų��ļ��� */
-		s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* ���ֽ�Ϊ��λ��ȡ����,�����һ���ļ�Ŀ¼��ϢFAT_DIR_INFO */
+	{  /* 搜索空闲的文件目录结构用于存放长文件名 */
+		s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* 以字节为单位读取数据,获得下一个文件目录信息FAT_DIR_INFO */
 		if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
-		if (count == 0) break;  /* �޷���������,�ϼ�Ŀ¼������ */
+		if (count == 0) break;  /* 无法读出数据,上级目录结束了 */
 		if (GlobalBuf[0] && GlobalBuf[0] != 0xE5) 
-		{  /* ����������ʹ�õ��ļ�Ŀ¼�ṹ,���ڳ��ļ����������Ӵ��,���Կռ䲻��,���������ǰλ�ò����ת�� */
-			s = CH376ByteLocate(NewFileLoc);  /* ���ϼ�Ŀ¼���ƶ��ļ�ָ�뵽��ǰ�ļ�Ŀ¼��Ϣ��λ�� */
+		{  /* 后面有正在使用的文件目录结构,由于长文件名必须连接存放,所以空间不够,必须放弃当前位置并向后转移 */
+			s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
 			if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
-			GlobalBuf[0] = 0xE5;  /* �ļ�ɾ����־ */
+			GlobalBuf[0] = 0xE5;  /* 文件删除标志 */
 			for (s = 1; s != sizeof(FAT_DIR_INFO); s ++) GlobalBuf[s] = GlobalBuf[sizeof(FAT_DIR_INFO) + s];
-			s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* д��һ���ļ�Ŀ¼�ṹ,����ɾ��֮ǰ�½����ļ�,ʵ�����Ժ�Ὣ֮ת�Ƶ�Ŀ¼����ĩλ�� */
+			s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* 写入一个文件目录结构,用于删除之前新建的文件,实际上稍后会将之转移到目录的最末位置 */
 			if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
 			do 
-			{  /* ����������е��ļ�Ŀ¼�ṹ */
-				s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* ���ֽ�Ϊ��λ��ȡ����,�����һ���ļ�Ŀ¼��ϢFAT_DIR_INFO */
+			{  /* 向后搜索空闲的文件目录结构 */
+				s = CH376ByteRead(GlobalBuf, sizeof(FAT_DIR_INFO), &count);  /* 以字节为单位读取数据,获得下一个文件目录信息FAT_DIR_INFO */
 				if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
 			} 
-			while (count && GlobalBuf[0]);  /* �����Ȼ������ʹ�õ��ļ�Ŀ¼�ṹ������������,ֱ���ϼ�Ŀ¼������������δʹ�ù����ļ�Ŀ¼�ṹ */
-			NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET);  /* ���ϼ�Ŀ¼�ĵ�ǰ�ļ�ָ����Ϊ��ǰ�ļ�Ŀ¼��Ϣ���ϼ�Ŀ¼�е���ʼλ�� */
-			i = DirBlockCnt + 1;  /* ��Ҫ�Ŀ��е��ļ�Ŀ¼�ṹ�ĸ���,�������ļ�������һ���ͳ��ļ��� */
-			if (count == 0) break;  /* �޷���������,�ϼ�Ŀ¼������ */
-			NewFileLoc -= sizeof(FAT_DIR_INFO);  /* ���ص��ղ��������Ŀ��е��ļ�Ŀ¼�ṹ����ʼλ�� */
+			while (count && GlobalBuf[0]);  /* 如果仍然是正在使用的文件目录结构则继续向后搜索,直到上级目录结束或者有尚未使用过的文件目录结构 */
+			NewFileLoc = CH376ReadVar32(VAR_CURRENT_OFFSET);  /* 用上级目录的当前文件指针作为当前文件目录信息在上级目录中的起始位置 */
+			i = DirBlockCnt + 1;  /* 需要的空闲的文件目录结构的个数,包括短文件名本身一个和长文件名 */
+			if (count == 0) break;  /* 无法读出数据,上级目录结束了 */
+			NewFileLoc -= sizeof(FAT_DIR_INFO);  /* 倒回到刚才搜索到的空闲的文件目录结构的起始位置 */
 		}
 	}
 	if (i) 
-	{  /* ���е��ļ�Ŀ¼�ṹ�����Դ�ų��ļ���,ԭ�����ϼ�Ŀ¼������,���������ϼ�Ŀ¼�ĳ��� */
-		s = CH376ReadVar8(VAR_SEC_PER_CLUS);  /* ÿ�������� */
+	{  /* 空闲的文件目录结构不足以存放长文件名,原因是上级目录结束了,下面增加上级目录的长度 */
+		s = CH376ReadVar8(VAR_SEC_PER_CLUS);  /* 每簇扇区数 */
 		if (s == 128) 
-		{  /* FAT12/FAT16�ĸ�Ŀ¼,�����ǹ̶���,�޷������ļ�Ŀ¼�ṹ */
-			s = ERR_FDT_OVER;  /* FAT12/FAT16��Ŀ¼�µ��ļ���Ӧ������512��,��Ҫ�������� */
+		{  /* FAT12/FAT16的根目录,容量是固定的,无法增加文件目录结构 */
+			s = ERR_FDT_OVER;  /* FAT12/FAT16根目录下的文件数应该少于512个,需要磁盘整理 */
 			goto CH376CreateLongNameE;
 		}
-		count = s * DEF_SECTOR_SIZE;  /* ÿ���ֽ��� */
-		if (count < i * sizeof(FAT_DIR_INFO)) count <<= 1;  /* һ�ز���������һ��,�������ֻ�ᷢ����ÿ��Ϊ512�ֽڵ������ */
-		s = CH376LongNameWrite( NULL, count );  /* ���ֽ�Ϊ��λ��ǰλ��д��ȫ0���ݿ�,��������ӵ��ļ�Ŀ¼�� */
+		count = s * DEF_SECTOR_SIZE;  /* 每簇字节数 */
+		if (count < i * sizeof(FAT_DIR_INFO)) count <<= 1;  /* 一簇不够则增加一簇,这种情况只会发生于每簇为512字节的情况下 */
+		s = CH376LongNameWrite( NULL, count );  /* 以字节为单位向当前位置写入全0数据块,清空新增加的文件目录簇 */
 		if ( s != USB_INT_SUCCESS ) goto CH376CreateLongNameE;
 	}
-	s = CH376ByteLocate(NewFileLoc);  /* ���ϼ�Ŀ¼���ƶ��ļ�ָ�뵽��ǰ�ļ�Ŀ¼��Ϣ��λ�� */
+	s = CH376ByteLocate(NewFileLoc);  /* 在上级目录中移动文件指针到当前文件目录信息的位置 */
 	if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
 	GlobalBuf[11] = ATTR_LONG_NAME;
 	GlobalBuf[12] = 0x00;
-	GlobalBuf[13] = CH376CheckNameSum(&GlobalBuf[sizeof(FAT_DIR_INFO)]);  /* ���㳤�ļ����Ķ��ļ�������� */
+	GlobalBuf[13] = CH376CheckNameSum(&GlobalBuf[sizeof(FAT_DIR_INFO)]);  /* 计算长文件名的短文件名检验和 */
 	GlobalBuf[26] = 0x00;
 	GlobalBuf[27] = 0x00;
 	for (s = 0; DirBlockCnt != 0;) 
-	{  /* ���ļ���ռ�õ��ļ�Ŀ¼�ṹ���� */
-		GlobalBuf[0] = s ? DirBlockCnt : DirBlockCnt | 0x40;  /* �״�Ҫ�ó��ļ�����ڱ�־ */
+	{  /* 长文件名占用的文件目录结构计数 */
+		GlobalBuf[0] = s ? DirBlockCnt : DirBlockCnt | 0x40;  /* 首次要置长文件名入口标志 */
 		DirBlockCnt--;
 		NameCount = DirBlockCnt * LONG_NAME_PER_DIR;
 		for (s = 1; s < sizeof( FAT_DIR_INFO ); s += 2) 
-		{  /* ������ļ���,���ļ������ַ��ڴ�����UNICODE��С�˷�ʽ��� */
-			if (s == 1 + 5 * 2) s = 14;  /* �ӳ��ļ����ĵ�һ��1-5���ַ������ڶ���6-11���ַ� */
-			else if (s == 14 + 6 * 2) s = 28;  /* �ӳ��ļ����ĵڶ���6-11���ַ�����������12-13���ַ� */
+		{  /* 输出长文件名,长文件名的字符在磁盘上UNICODE用小端方式存放 */
+			if (s == 1 + 5 * 2) s = 14;  /* 从长文件名的第一组1-5个字符跳到第二组6-11个字符 */
+			else if (s == 14 + 6 * 2) s = 28;  /* 从长文件名的第二组6-11个字符跳到第三组12-13个字符 */
 			GlobalBuf[s] = pLongName[NameCount++];
 			GlobalBuf[s + 1] = pLongName[NameCount++];
 		}
-		s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* ���ֽ�Ϊ��λд��һ���ļ�Ŀ¼�ṹ,���ļ��� */
+		s = CH376LongNameWrite(GlobalBuf, sizeof(FAT_DIR_INFO));  /* 以字节为单位写入一个文件目录结构,长文件名 */
 		if (s != USB_INT_SUCCESS) goto CH376CreateLongNameE;
 	}
-	s = CH376LongNameWrite(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO));  /* ���ֽ�Ϊ��λд��һ���ļ�Ŀ¼�ṹ,����ת������֮ǰ�½����ļ���Ŀ¼��Ϣ */
+	s = CH376LongNameWrite(&GlobalBuf[ sizeof(FAT_DIR_INFO)], sizeof(FAT_DIR_INFO));  /* 以字节为单位写入一个文件目录结构,这是转移来的之前新建的文件的目录信息 */
 CH376CreateLongNameE:
-	CH376CloseFile(FALSE);  /* ���ڸ�Ŀ¼�����Ҫ�ر� */
+	CH376CloseFile(FALSE);  /* 对于根目录则必须要关闭 */
 	return s;
 }

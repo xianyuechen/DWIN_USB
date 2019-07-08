@@ -1,28 +1,30 @@
 /******************************************************************************
 																	
-                  °æÈ¨ËùÓÐ (C), 2019, ±±¾©µÏÎÄ¿Æ¼¼ÓÐÏÞ¹«Ë¾	
+                  ç‰ˆæƒæ‰€æœ‰ (C), 2019, åŒ—äº¬è¿ªæ–‡ç§‘æŠ€æœ‰é™å…¬å¸	
 																			  
 *******************************************************************************
-ÎÄ ¼þ Ãû   : uart.h
-°æ ±¾ ºÅ   : V1.0
-×÷    Õß   : chenxianyue
-Éú³ÉÈÕÆÚ   : 2019Äê6ÔÂ21ÈÕ
-¹¦ÄÜÃèÊö   : ´®¿Ú5ÖÐ¶Ï´òÓ¡×Ö·û´®
-ÐÞ¸ÄÀúÊ·   :
-ÈÕ    ÆÚ   : 
-×÷    Õß   : 
-ÐÞ¸ÄÄÚÈÝ   : 	
+æ–‡ ä»¶ å   : uart.h
+ç‰ˆ æœ¬ å·   : V1.0
+ä½œ    è€…   : chenxianyue
+ç”Ÿæˆæ—¥æœŸ   : 2019å¹´6æœˆ21æ—¥
+åŠŸèƒ½æè¿°   : ä¸²å£5ä¸­æ–­æ‰“å°å­—ç¬¦ä¸²
+ä¿®æ”¹åŽ†å²   :
+æ—¥    æœŸ   : 
+ä½œ    è€…   : 
+ä¿®æ”¹å†…å®¹   : 	
 ******************************************************************************/
 #ifndef _UART_H_
 #define _UART_H_
 
+#include "t5los8051.h"
 #include "driver/system/sys.h"
-/********************************¶ÔÍâº¯ÊýÉùÃ÷*********************************/
 
-void UART5_Init(void);								/* ´®¿Ú5³õÊ¼»¯ 1ms¶¨Ê±Æ÷ */
-void UART5_Sendbyte(UINT8 dat);						/* ´®¿Ú5·¢ËÍµ¥¸ö×Ö½Ú */
-void UART5_SendString(PUINT8 String);				/* ´®¿Ú5·¢ËÍ×Ö·û´®, '\0'×Ô¶¯½ØÖÁ */
-void SendString(PUINT8 String, UINT32 BUFFSIZE);	/* ´®¿Ú5·¢ËÍÖ¸¶¨³¤¶ÈµÄ»º³åÊý¾Ý */
+/********************************å¯¹å¤–å‡½æ•°å£°æ˜Ž*********************************/
+
+void UART5_Init(void);								/* ä¸²å£5åˆå§‹åŒ– 1mså®šæ—¶å™¨ */
+void UART5_Sendbyte(UINT8 dat);						/* ä¸²å£5å‘é€å•ä¸ªå­—èŠ‚ */
+void UART5_SendString(PUINT8 String);				/* ä¸²å£5å‘é€å­—ç¬¦ä¸², '\0'è‡ªåŠ¨æˆªè‡³ */
+void SendString(PUINT8 String, UINT32 BUFFSIZE);	/* ä¸²å£5å‘é€æŒ‡å®šé•¿åº¦çš„ç¼“å†²æ•°æ® */
 void Send32Byte(UINT32 Data);
 
 #endif

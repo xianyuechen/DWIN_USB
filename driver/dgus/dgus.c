@@ -1,34 +1,35 @@
 /******************************************************************************
 																	
-                  °æÈ¨ËùÓÐ (C), 2019, ±±¾©µÏÎÄ¿Æ¼¼ÓÐÏÞ¹«Ë¾	
+                  ç‰ˆæƒæ‰€æœ‰ (C), 2019, åŒ—äº¬è¿ªæ–‡ç§‘æŠ€æœ‰é™å…¬å¸	
 																			  
 *******************************************************************************
-ÎÄ ¼þ Ãû   : dgus.c
-°æ ±¾ ºÅ   : V1.0
-×÷    Õß   : chenxianyue
-Éú³ÉÈÕÆÚ   : 2019Äê6ÔÂ21ÈÕ
-¹¦ÄÜÃèÊö   : Ìá¹©µ¥Æ¬»ú·ÃÎÊDGUS±äÁ¿½Ó¿Ú ÎÄ¼þÉý¼¶Ïà¹ØµÄ½Ó¿Ú¶¨Òå
-ÐÞ¸ÄÀúÊ·   :
-ÈÕ    ÆÚ   : 
-×÷    Õß   : 
-ÐÞ¸ÄÄÚÈÝ   : 	
+æ–‡ ä»¶ å   : dgus.c
+ç‰ˆ æœ¬ å·   : V1.0
+ä½œ    è€…   : chenxianyue
+ç”Ÿæˆæ—¥æœŸ   : 2019å¹´6æœˆ21æ—¥
+åŠŸèƒ½æè¿°   : æä¾›å•ç‰‡æœºè®¿é—®DGUSå˜é‡æŽ¥å£ æ–‡ä»¶å‡çº§ç›¸å…³çš„æŽ¥å£å®šä¹‰
+ä¿®æ”¹åŽ†å²   :
+æ—¥    æœŸ   : 
+ä½œ    è€…   : 
+ä¿®æ”¹å†…å®¹   : 	
 ******************************************************************************/
 #include "dgus.h"
-#include "t5los8051.h"
 
-/********************************¶ÔÄÚº¯ÊýÉùÃ÷*********************************/
+/********************************å¯¹å†…å‡½æ•°å£°æ˜Ž*********************************/
+
+/********************************å‡½æ•°å®šä¹‰å¼€å§‹*********************************/
 
 /*****************************************************************************
- º¯ Êý Ãû  : ReadDGUS
- ¹¦ÄÜÃèÊö  : ¶ÁDGUS¼Ä´æÆ÷
- ÊäÈë²ÎÊý  : UINT32 Addr  DGUS¼Ä´æÆ÷µØÖ·
-             PUINT8 pBuf  ½ÓÊÕ»º³åÇø
-			 UINT16 Len   ¶ÁÈ¡Êý¾Ý×Ö½Ú³¤¶È	 
- Êä³ö²ÎÊý  : ÎÞ
- ÐÞ¸ÄÀúÊ·  :
- ÈÕ    ÆÚ  : 2019Äê6ÔÂ21ÈÕ
- ×÷    Õß  : chenxianyue
- ÐÞ¸ÄÄÚÈÝ  : ´´½¨
+ å‡½ æ•° å  : ReadDGUS
+ åŠŸèƒ½æè¿°  : è¯»DGUSå¯„å­˜å™¨
+ è¾“å…¥å‚æ•°  : UINT32 Addr  DGUSå¯„å­˜å™¨åœ°å€
+             PUINT8 pBuf  æŽ¥æ”¶ç¼“å†²åŒº
+			 UINT16 Len   è¯»å–æ•°æ®å­—èŠ‚é•¿åº¦	 
+ è¾“å‡ºå‚æ•°  : æ— 
+ ä¿®æ”¹åŽ†å²  :
+ æ—¥    æœŸ  : 2019å¹´6æœˆ21æ—¥
+ ä½œ    è€…  : chenxianyue
+ ä¿®æ”¹å†…å®¹  : åˆ›å»º
 *****************************************************************************/
 void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 {
@@ -42,7 +43,7 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 	ADR_INC = 1;
 	RAMMODE = 0xAF;
 	while (!APP_ACK);
-	if (Offset == 1)			/* µØÖ·Æ«ÒÆÐÞÕý */
+	if (Offset == 1)			/* åœ°å€åç§»ä¿®æ­£ */
 	{
 		APP_EN = 1;
 		while (APP_EN);
@@ -51,7 +52,7 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
         *pBuf++ = DATA0;
 		Len -= 2;
 	}
-	EndLen = Len & 0x03;		/* Î²²¿³¤¶È 0-3 */
+	EndLen = Len & 0x03;		/* å°¾éƒ¨é•¿åº¦ 0-3 */
 	Len = Len >> 2;
 	while (Len--)
 	{
@@ -62,7 +63,7 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 		*pBuf++ = DATA1;
 		*pBuf++ = DATA0;
 	}
-	if (EndLen)					/* Î²²¿ÓÐÊý¾Ý ¸ù¾ÝÊý¾Ý³¤¶ÈÑ¡Ôñ¶ÁÈ¡´ÎÊý */
+	if (EndLen)					/* å°¾éƒ¨æœ‰æ•°æ® æ ¹æ®æ•°æ®é•¿åº¦é€‰æ‹©è¯»å–æ¬¡æ•° */
 	{
 		APP_EN = 1;
 		while (APP_EN);
@@ -72,17 +73,18 @@ void ReadDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 	}
 	RAMMODE = 0x00;	 
 }
+
 /*****************************************************************************
- º¯ Êý Ãû  : WriteDGUS
- ¹¦ÄÜÃèÊö  : Ð´DGUS¼Ä´æÆ÷
- ÊäÈë²ÎÊý  : UINT32 Addr  DGUS¼Ä´æÆ÷µØÖ·
-             PUINT8 pBuf  ·¢ËÍ»º³åÇø
-			 UINT16 Len   ·¢ËÍÊý¾Ý×Ö½Ú³¤¶È	 
- Êä³ö²ÎÊý  : ÎÞ
- ÐÞ¸ÄÀúÊ·  :
- ÈÕ    ÆÚ  : 2019Äê6ÔÂ21ÈÕ
- ×÷    Õß  : chenxianyue
- ÐÞ¸ÄÄÚÈÝ  : ´´½¨
+ å‡½ æ•° å  : WriteDGUS
+ åŠŸèƒ½æè¿°  : å†™DGUSå¯„å­˜å™¨
+ è¾“å…¥å‚æ•°  : UINT32 Addr  DGUSå¯„å­˜å™¨åœ°å€
+             PUINT8 pBuf  å‘é€ç¼“å†²åŒº
+			 UINT16 Len   å‘é€æ•°æ®å­—èŠ‚é•¿åº¦	 
+ è¾“å‡ºå‚æ•°  : æ— 
+ ä¿®æ”¹åŽ†å²  :
+ æ—¥    æœŸ  : 2019å¹´6æœˆ21æ—¥
+ ä½œ    è€…  : chenxianyue
+ ä¿®æ”¹å†…å®¹  : åˆ›å»º
 *****************************************************************************/
 void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 {
@@ -96,12 +98,12 @@ void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 	ADR_INC = 1;
 	RAMMODE = 0x8F;
 	while (!APP_ACK);
-	if (Offset == 1)			/* µØÖ·Æ«ÒÆÐÞÕý */
+	if (Offset == 1)			/* åœ°å€åç§»ä¿®æ­£ */
 	{
 		ADR_INC = 0;
         RAMMODE = 0xAF;
         APP_EN = 1;
-        while (APP_EN);			/* ¶ÁÐ´Ö´ÐÐ½áÊø	*/
+        while (APP_EN);			/* è¯»å†™æ‰§è¡Œç»“æŸ	*/
 
         ADR_INC = 0x01; 
         RAMMODE = 0x8F;     
@@ -109,10 +111,10 @@ void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 		if (Len == 1) return;
         DATA0 = *pBuf++;
         APP_EN = 1;
-        while (APP_EN);			/* ¶ÁÐ´Ö´ÐÐ½áÊø	*/
+        while (APP_EN);			/* è¯»å†™æ‰§è¡Œç»“æŸ	*/
         Len -= 2;
 	}
-	EndLen = Len & 0x03;		/* Î²²¿³¤¶È 0-3 */
+	EndLen = Len & 0x03;		/* å°¾éƒ¨é•¿åº¦ 0-3 */
 	Len >>=2;
 	while (Len--)
 	{
@@ -123,7 +125,7 @@ void WriteDGUS(UINT32 Addr, PUINT8 pBuf, UINT16 Len)
 		APP_EN = 1;
 		while (!APP_EN);
 	}
-	if (EndLen)					/* Î²²¿ÓÐÊý¾Ý ¸ù¾ÝÊý¾Ý³¤¶ÈÑ¡ÔñÐ´Èë´ÎÊý */
+	if (EndLen)					/* å°¾éƒ¨æœ‰æ•°æ® æ ¹æ®æ•°æ®é•¿åº¦é€‰æ‹©å†™å…¥æ¬¡æ•° */
 	{
 		DATA3 = *pBuf++;
 		if (EndLen & 2) DATA2 = *pBuf++;

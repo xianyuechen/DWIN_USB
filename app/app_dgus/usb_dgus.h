@@ -1,17 +1,17 @@
 /******************************************************************************
 																	
-                  °æÈ¨ËùÓĞ (C), 2019, ±±¾©µÏÎÄ¿Æ¼¼ÓĞÏŞ¹«Ë¾	
+                  ç‰ˆæƒæ‰€æœ‰ (C), 2019, åŒ—äº¬è¿ªæ–‡ç§‘æŠ€æœ‰é™å…¬å¸	
 																			  
 *******************************************************************************
-ÎÄ ¼ş Ãû   : usb_dgus.h
-°æ ±¾ ºÅ   : V1.0
-×÷    Õß   : chenxianyue
-Éú³ÉÈÕÆÚ   : 2019Äê6ÔÂ21ÈÕ
-¹¦ÄÜÃèÊö   : USB½Ó¿ÚÏà¹ØµÄµÄDGUSÓ¦ÓÃ³ÌĞòÊµÏÖ
-ĞŞ¸ÄÀúÊ·   :
-ÈÕ    ÆÚ   : 
-×÷    Õß   : 
-ĞŞ¸ÄÄÚÈİ   : 	
+æ–‡ ä»¶ å   : usb_dgus.h
+ç‰ˆ æœ¬ å·   : V1.0
+ä½œ    è€…   : chenxianyue
+ç”Ÿæˆæ—¥æœŸ   : 2019å¹´7æœˆ8æ—¥
+åŠŸèƒ½æè¿°   : USBæ¥å£ç›¸å…³çš„çš„DGUSåº”ç”¨ç¨‹åºå®ç°
+ä¿®æ”¹å†å²   :
+æ—¥    æœŸ   : 
+ä½œ    è€…   : 
+ä¿®æ”¹å†…å®¹   : 	
 ******************************************************************************/
 #ifndef _USB_DGUS_H_
 #define _USB_DGUS_H_
@@ -23,16 +23,9 @@
 #include "string.h"
 #include "stdio.h"
 
-void USBModule(void);
-UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
-void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen);
-void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
-void AckCreateOrDelPath(void);
-void AckSearchFile(void);
-void AckReadOrWriteFile(void);
-void AckGetOrSetPath(void);
-void AckSystemUp(void);
-void AckDiskInit(void);
-void MesseageShow(void);
+/********************************å¯¹å¤–å‡½æ•°å£°æ˜*********************************/
+
+void USBModule(void);			/* USBæ¨¡å—åˆå§‹åŒ– */
+void MesseageShow(void);		/* æ–‡ä»¶å±æ€§DGUSæ˜¾ç¤º */
 
 #endif

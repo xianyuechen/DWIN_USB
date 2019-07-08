@@ -1,75 +1,87 @@
 /******************************************************************************
 																	
-                  ��Ȩ���� (C), 2019, �������ĿƼ����޹�˾	
+                  版权所有 (C), 2019, 北京迪文科技有限公司	
 																			  
 *******************************************************************************
-�� �� ��   : usb_dgus.c
-�� �� ��   : V1.0
-��    ��   : chenxianyue
-��������   : 2019��6��27��
-��������   : USB�ӿ���صĵ�DGUSӦ�ó���ʵ��
-�޸���ʷ   :
-��    ��   : 
-��    ��   : 
-�޸�����   : 	
+文 件 名   : usb_dgus.c
+版 本 号   : V1.0
+作    者   : chenxianyue
+生成日期   : 2019年7月8日
+功能描述   : USB接口相关的的DGUS应用程序实现
+修改历史   :
+日    期   : 
+作    者   : 
+修改内容   : 	
 ******************************************************************************/
 
 #include "usb_dgus.h"
 
+/********************************对内函数声明*********************************/
 
+UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
+void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen);
+void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
+void AckCreateOrDelPath(void);
+void AckSearchFile(void);
+void AckReadOrWriteFile(void);
+void AckGetOrSetPath(void);
+void AckSystemUp(void);
+void AckDiskInit(void);
 void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
-/********************************�궨��***************************************/
-/* USB DGUS�Ĵ�����ַ */
-#define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)
-#define DGUS_ADDR_CREATE_OR_DEL_PATH	(0x5C4)
-#define DGUS_ADDR_READ_OR_WRITE_FILE	(0x5C8)
-#define DGUS_ADDR_SEARCH_FILE			(0x5D0)
-#define DGUS_ADDR_SYSTEM_UP				(0x5D4)
-#define DGUS_ADDR_DISK_STATUS			(0x5D8)
-/* USB ������������ */
-#define ACK_GET_OR_SET_PATH				(0x01)
-#define ACK_CREATE_OR_DEL_PATH			(0x02)
-#define ACK_READ_OR_WRITE_FILE			(0x03)
-#define ACK_SEARCH_FILE					(0x04)
-#define ACK_SYSTEM_UP					(0x05)
-#define ACK_DISK_INIT					(0x06)
-/* ��־λ���� */
-#define FLAG_START						(0x5A)
-#define FLAG_END						(0x00)
-#define FLAG_READ						(0x5A)
-#define FLAG_WRITE						(0xA5)
-#define FLAG_CREATE						(0x5A)
-#define FLAG_DELETE						(0xA5)
-#define TYPE_FILE						(0x55)
-#define TYPE_DIR 						(0xAA)
-#define DISK_IC_ERROR					(0x00)
-#define DISK_NO_CONNECT					(0x00)
-#define DISK_NO_INIT					(0x00)
 
-#define MATCH_LIST_NUM					(0x28)
-#define MATCH_LIST_LEN					(0x320)
-#define MATCH_STRING_LEN				(0x10)
-#define PATH_LENGTH						(0x80)
+/********************************宏定义***************************************/
+/* USB DGUS寄存器地址 */
+#define DGUS_ADDR_GET_OR_SET_PATH		(0x5C0)		/* 获取或者设置文件或目录属性 */
+#define DGUS_ADDR_CREATE_OR_DEL_PATH	(0x5C4)		/* 创建或者删除文件或目录 */
+#define DGUS_ADDR_READ_OR_WRITE_FILE	(0x5C8)		/* 读取或者写入文件 */
+#define DGUS_ADDR_SEARCH_FILE			(0x5D0)		/* 查找文件 */
+#define DGUS_ADDR_SYSTEM_UP				(0x5D4)		/* 系统升级 */
+#define DGUS_ADDR_DISK_STATUS			(0x5D8)		/* 芯片或者USB状态 */
+/* USB 操作动作定义 */
+#define ACK_GET_OR_SET_PATH				(0x01)		/* 获取或者设置文件或目录属性 */
+#define ACK_CREATE_OR_DEL_PATH			(0x02)		/* 创建或者删除文件或目录 */
+#define ACK_READ_OR_WRITE_FILE			(0x03)		/* 读取或者写入文件 */
+#define ACK_SEARCH_FILE					(0x04)		/* 查找文件 */
+#define ACK_SYSTEM_UP					(0x05)		/* 系统升级 */
+#define ACK_DISK_INIT					(0x06)		/* 芯片或者USB初始化 */
+/* 标志位定义 */
+#define FLAG_START						(0x5A)		/* 开始标志 */
+#define FLAG_END						(0x00)		/* 结束标志 */
+#define FLAG_READ						(0x5A)		/* 读取标志 */
+#define FLAG_WRITE						(0xA5)		/* 写入标志 */
+#define FLAG_CREATE						(0x5A)		/* 创建标志 */
+#define FLAG_DELETE						(0xA5)		/* 删除标志 */
+#define TYPE_FILE						(0x55)		/* 类型为文件 */
+#define TYPE_DIR 						(0xAA)		/* 类型为目录 */
+#define DISK_IC_ERROR					(0x00)		/* 芯片错误或者连接错误 */
+#define DISK_NO_CONNECT					(0x00)		/* 磁盘没有连接 */
+#define DISK_NO_INIT					(0x00)		/* 磁盘没有初始化 */
+
+#define MATCH_LIST_NUM					(0x28)		/* 匹配列表的数量 */
+#define MATCH_LIST_LEN					(0x320)		/* 匹配列表的总字节长 */
+#define MATCH_STRING_LEN				(0x10)		/* 匹配字符串长度 */
+#define PATH_LENGTH						(0x80)		/* 路径长度 */
 #ifndef BUF_SIZE
-#define BUF_SIZE						(0x1000)
+#define BUF_SIZE						(0x1000)	/* BUF缓冲区大小 */
 #endif
 
-		
+/********************************函数定义开始*********************************/
+
 /*****************************************************************************
- �� �� ��  : USBModule
- ��������  : Ψһ����ӿ� �Զ�ɨ��DGUS�����־��ִ����Ӧ����
- �������  : ��	 
- �������  : ��
- �޸���ʷ  :
- ��    ��  : 2019��6��28��
- ��    ��  : chenxianyue
- �޸�����  : ����
+ 函 数 名  : USBModule
+ 功能描述  : 唯一对外接口 自动扫描DGUS命令标志并执行相应操作
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
 *****************************************************************************/
 void USBModule(void)
 {
 	UINT8 ACK = 0;
 	AckDiskInit();
-	/* (1) ɨ��DGUS������־λ ȷ����ӦӦ���־ ��ɨ��ļĴ��� ִ�����ȼ��� */
+	/* (1) 扫描DGUS变量标志位 确定相应应答标志 后扫描的寄存器 执行优先级高 */
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_READ) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_WRITE))
 		ACK = ACK_GET_OR_SET_PATH;
@@ -91,7 +103,7 @@ void USBModule(void)
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_CONNECT) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_INIT))
 		ACK = ACK_DISK_INIT;
-	/* (2) Ӧ����Ӧ */
+	/* (2) 应答响应 */
 	switch (ACK)
 	{
 		case ACK_DISK_INIT:
@@ -128,17 +140,18 @@ void USBModule(void)
 			break;
 	}
 }
+
 /*****************************************************************************
- �� �� ��  : CompareDgusRegValue
- ��������  : �Ƚ�DGUS�Ĵ������ֽڵ������Ƿ��Value���
- �������  : UINT32 AddrDgus	DGUS�Ĵ�����ַ
- 			 UINT8 Value		���Ƚϵ��ֽ� 	 
- �������  : DWIN_OK    ��ֵ���
- 			 DWIN_ERROR ��ֵ����
- �޸���ʷ  :
- ��    ��  : 2019��6��28��
- ��    ��  : chenxianyue
- �޸�����  : ����
+ 函 数 名  : CompareDgusRegValue
+ 功能描述  : 比较DGUS寄存器首字节的数字是否和Value相等
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 UINT8 Value		待比较的字节 	 
+ 输出参数  : DWIN_OK    数值相等
+ 			 DWIN_ERROR 数值不等
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
 *****************************************************************************/
 UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
 {
@@ -147,17 +160,18 @@ UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
 	if (DgusValue == Value) return DWIN_OK;
 	else return DWIN_ERROR;
 }
+
 /*****************************************************************************
- �� �� ��  : ReadDgusClientString
- ��������  : ��ȡDGUS�ͻ��˵������ַ� ����ȥ��DGUS������־���ַ������ַ����� 
- �������  : UINT32 AddrDgus	DGUS�Ĵ�����ַ
- 			 PUINT8 pData		DGUS���ݵĽ��ջ�����
-			 PUINT16 pDataLen	��ȡǰ����ȡ���� ��ȡ��DGUS���ݵ�ʵ�ʳ��� 	 
- �������  : ��
- �޸���ʷ  :
- ��    ��  : 2019��6��28��
- ��    ��  : chenxianyue
- �޸�����  : ����
+ 函 数 名  : ReadDgusClientString
+ 功能描述  : 读取DGUS客户端的输入字符 返回去掉DGUS结束标志的字符串和字符长度 
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 PUINT8 pData		DGUS数据的接收缓冲区
+			 PUINT16 pDataLen	读取前：读取长度 读取后：DGUS数据的实际长度 	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
 *****************************************************************************/
 void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 {
@@ -165,7 +179,7 @@ void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 	UINT16 Len = 0;
 	Len = *pDataLen;
 	ReadDGUS(AddrDgus, pData, *pDataLen);
-	for (i = 0; i < *pDataLen; i++)	/* �˴�ֻ����������� ����������� DGUS�洢���ݲ����Զ����� */
+	for (i = 0; i < *pDataLen; i++)	/* 此处只能用正序查找 逆序会有问题 DGUS存储数据不会自动擦除 */
 	{
 		if (pData[i] == 0xFF && pData[i + 1] == 0xFF)
 		{
@@ -174,27 +188,38 @@ void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen)
 	}
 	if (*pDataLen == Len) *pDataLen = strlen(pData);
 }
+
 /*****************************************************************************
- �� �� ��  : WriteDgusClientString
- ��������  : ��DGUS�ͻ���д������ д�������ݻ��������־ д���ʵ�ʳ��Ȼ�+2
- �������  : UINT32 AddrDgus	DGUS�Ĵ�����ַ
- 			 PUINT8 pData		DGUS���ݵ�д�뻺����
-			 UINT16 DataLen		д�볤�� 	 
- �������  : ��
- �޸���ʷ  :
- ��    ��  : 2019��6��28��
- ��    ��  : chenxianyue
- �޸�����  : ����
+ 函 数 名  : WriteDgusClientString
+ 功能描述  : 向DGUS客户端写入数据 写入后的数据会带结束标志 写入的实际长度会+2
+ 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
+ 			 PUINT8 pData		DGUS数据的写入缓冲区
+			 UINT16 DataLen		写入长度 	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
 *****************************************************************************/
 void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen)
 {
-	/* д��0x00 0x00 ������־������DGUS�ͻ�����ʾ */
+	/* 写入0x00 0x00 结束标志来适配DGUS客户端显示 */
 	pData[DataLen++] = 0x00;
 	pData[DataLen++] = 0x00;
 	WriteDGUS(AddrDgus, pData, DataLen);
 	
 }
 
+/*****************************************************************************
+ 函 数 名  : AckCreateOrDelPath
+ 功能描述  : 响应：创建或者删除 文件或者目录
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckCreateOrDelPath(void)
 {
 	UINT8 xdata Cmd[8];
@@ -203,17 +228,17 @@ void AckCreateOrDelPath(void)
 	UINT16 PathLength = 0, AddrDgusPath = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(Path, 0, PATH_LENGTH);
-	/* (1) ��ȡ������ */
+	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
 	FileType = Cmd[2];
 	AddrDgusPath = (Cmd[3] << 8) | Cmd[4];
 	PathLength = PATH_LENGTH;
-	/* (2) ��ȡ·���� */
+	/* (2) 读取路径名 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
-	/* (3) ���ݿ�����ִ�д���/ɾ�� �ļ�/Ŀ¼�Ĳ��� */
+	/* (3) 根据控制字执行创建/删除 文件/目录的操作 */
 	switch (Mod)
 	{
 		case FLAG_CREATE:
@@ -229,11 +254,21 @@ void AckCreateOrDelPath(void)
 		default:
 			break;
 	}
-	/* (4) д���� */
-	Cmd[0] = 0;			/* �����־λ */
+	/* (4) 写入结果 */
+	Cmd[0] = 0;			/* 清除标志位 */
 	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 }
 
+/*****************************************************************************
+ 函 数 名  : AckSearchFile
+ 功能描述  : 响应：查找文件
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckSearchFile(void)
 {
 	UINT8 xdata Cmd[8];
@@ -251,23 +286,23 @@ void AckSearchFile(void)
 	memset(MatchLish, 0, MATCH_LIST_LEN);
 	PathLength = PATH_LENGTH;
 	AimStringLen = MATCH_STRING_LEN;
-	/* (1) ��ȡ������ */
+	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
 	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
 	AddrDgusAimString = (Cmd[4] << 8) | Cmd[5];
 	AddrDgusMatchResult = (Cmd[6] << 8) | Cmd[7];
 	WriteDGUS(AddrDgusMatchResult, MatchLish, MATCH_LIST_LEN);
-	/* (2) ��ȡ·���� */
+	/* (2) 读取路径名 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
-	/* (3) ��ȡƥ���ַ� */
+	/* (3) 读取匹配字符 */
 	ReadDgusClientString(AddrDgusAimString, AimString, &AimStringLen);
 	AimString[AimStringLen] = 0;
-	/* (4) ��ʼƥ�� */
+	/* (4) 开始匹配 */
 	Status = MatchFile(Path, AimString, MatchLish);
-	/* (5) ��ȡƥ������ */
+	/* (5) 获取匹配数量 */
 	pMatch = MatchLish;
 	for (i = 0; i < MATCH_LIST_NUM; i++)
 	{
@@ -275,14 +310,24 @@ void AckSearchFile(void)
 		pMatch += MATCH_LIST_LEN / MATCH_LIST_NUM;
 		MatchNumber++;
 	}
-	/* (6) ����ƥ���� */
-	Cmd[0] = 0;			/* �����־λ */
+	/* (6) 发送匹配结果 */
+	Cmd[0] = 0;			/* 清除标志位 */
 	Cmd[1] = MatchNumber;
 	WriteDGUS(DGUS_ADDR_SEARCH_FILE, Cmd, sizeof(Cmd));
-	/* ����д�뻺�����Ѿ������������ʼ�� ������д������־0x00 0x00������DGUS�ͻ�����ʾ */
+	/* 由于写入缓冲区已经进行了清零初始化 不用再写结束标志0x00 0x00来适配DGUS客户端显示 */
 	WriteDGUS(AddrDgusMatchResult, MatchLish, (MatchNumber * (MATCH_LIST_LEN / MATCH_LIST_NUM)));
 }
 
+/*****************************************************************************
+ 函 数 名  : AckReadOrWriteFile
+ 功能描述  : 响应：读写文件
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckReadOrWriteFile(void)
 {
 	UINT8 xdata Cmd[16];
@@ -295,18 +340,18 @@ void AckReadOrWriteFile(void)
 	memset(Path, 0, PATH_LENGTH);
 	memset(Buf, 0, BUF_SIZE);
 	PathLength = PATH_LENGTH;
-	/* (1) ��ȡ������ */
+	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
 	AddrDgusPath 	= (Cmd[2] << 8) | Cmd[3];
 	AddrDgusFileMsg = (Cmd[4] << 8) | Cmd[5];
 	SectorOffset 	= ((UINT32)Cmd[6] << 16) | (Cmd[7] << 8) | Cmd[8];
 	ByteSize 		= (Cmd[9] << 8) | Cmd[10];
-	/* (2) ��ȡ�ļ�·�� */
+	/* (2) 读取文件路径 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
-	/* (3) ���ݱ�־λ�����ļ���ȡ�����ļ�д�� */
+	/* (3) 根据标志位进行文件读取或者文件写入 */
 	switch (Mod)
 	{
 		case FLAG_READ:
@@ -332,11 +377,21 @@ void AckReadOrWriteFile(void)
 			break;
 		}
 	}
-	/* (6) ����ִ�н�� */
-	Cmd[0] = 0x00;		/* �����־λ */
+	/* (6) 发送执行结果 */
+	Cmd[0] = 0x00;		/* 清除标志位 */
 	WriteDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
 }
 
+/*****************************************************************************
+ 函 数 名  : AckGetOrSetPath
+ 功能描述  : 响应：获取或者设置文件或者目录属性
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckGetOrSetPath(void)
 {
 	UINT8 xdata Cmd[8];
@@ -349,16 +404,16 @@ void AckGetOrSetPath(void)
 	memset(Path, 0, PATH_LENGTH);
 	memset(DirName, 0, sizeof(DirName));
 	PathLength = PATH_LENGTH;
-	/* (1) ��ȡ������ */
+	/* (1) 读取控制字 */
 	ReadDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
 	AddrDgusPath = (Cmd[2] << 8) | Cmd[3];
 	AddrDgusDirAttr = (Cmd[4] << 8) | Cmd[5];
-	/* (2) ��ȡ�ļ�·�� */
+	/* (2) 读取文件路径 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
-	/* (3) ���ݱ�־λ�����ļ����Զ�ȡ��������д�� */
+	/* (3) 根据标志位进行文件属性读取或者属性写入 */
 	switch(Mod)
 	{
 		case FLAG_READ:
@@ -379,12 +434,22 @@ void AckGetOrSetPath(void)
 			break;
 		}
 	}
-	/* (6) ����ִ�н�� */
-	Cmd[0] = 0x00;		/* �����־λ */
+	/* (6) 发送执行结果 */
+	Cmd[0] = 0x00;		/* 清除标志位 */
 	Cmd[1] = Status;
 	WriteDGUS(DGUS_ADDR_GET_OR_SET_PATH, Cmd, sizeof(Cmd));
 }
 
+/*****************************************************************************
+ 函 数 名  : AckSystemUp
+ 功能描述  : 响应：系统升级
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
@@ -403,6 +468,16 @@ void AckSystemUp(void)
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 }
 
+/*****************************************************************************
+ 函 数 名  : AckDiskInit
+ 功能描述  : 响应：芯片和磁盘初始化
+ 输入参数  : 无	 
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void AckDiskInit(void)
 {
 	UINT8 xdata Cmd[4];
@@ -410,7 +485,7 @@ void AckDiskInit(void)
 	
 	ReadDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));
 	
-	if (Cmd[0] == DISK_IC_ERROR)
+	if (Cmd[0] == DISK_IC_ERROR)	/* 如果IC未检测，自动检测IC，设置磁盘为未连接和未初始化状态 */
 	{
 		Cmd[0] = CheckIC();
 		if (Cmd[0] == DISK_IC_ERROR)
@@ -420,29 +495,39 @@ void AckDiskInit(void)
 			goto END;
 		}
 	}
-	Cmd[1] = CheckConnect();
-	if (Cmd[1] == DISK_NO_CONNECT)
+	Cmd[1] = CheckConnect();		/* 断开重连 */
+	if (Cmd[1] == DISK_NO_CONNECT)	/* 如果磁盘为未连接，设置磁盘未初始化状态 */
 	{
 		Cmd[2] = DISK_NO_INIT;
 		goto END;
 	}
-	if (Cmd[2] == DISK_NO_INIT)
+	if (Cmd[2] == DISK_NO_INIT)		/* 如果磁盘为未初始化，进行磁盘初始化 */
 		Cmd[2] = CheckDiskInit();
 END:
 	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
 }
 
+/*****************************************************************************
+ 函 数 名  : SystemUpDriver
+ 功能描述  : 系统升级驱动
+ 输入参数  : UINT8 FileType		：文件类型
+			 UINT16 FileNumber	：文件编号
+			 PUINT16 pTimes		：升级成功数
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 {
 	UINT16 xdata Num = 0;
-	UINT8 xdata String[20];
-	if (FileNumber != FLAG_ALL) 
+	if (FileNumber != FLAG_ALL)		/* 如果是单个文件 直接升级 */ 
 	{
 		if (DWIN_OK == SystemUpdate(FileType, FileNumber)) (*pTimes)++;
 		goto END;
 	}
-	memset(String, 0, 20);
-	switch(FileType)
+	switch(FileType)	/* 对于某一类文件升级采取分成单个文件进行递归调用 */
 	{
 		case FILE_ALL:
 		{
@@ -465,7 +550,7 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 			}
 			break;
 		}
-		case FILE_XXX_BIN:
+		case FILE_XXX_BIN:		/* 0-31存放字库文件 */
 		{
 			for (Num = 0; Num < 32; Num++)
 			{
@@ -473,7 +558,7 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 			}
 			break;
 		}
-		case FILE_XXX_ICL:
+		case FILE_XXX_ICL:		/* 32-999存放ICL文件 */
 		{
 			for (Num = 32; Num < 1000; Num++)
 			{
@@ -485,6 +570,16 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 END:{}
 }
 
+/*****************************************************************************
+ 函 数 名  : 文件属性DGUS显示
+ 功能描述  : 系统升级驱动
+ 输入参数  : 无
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void MesseageShow(void)
 {
 	UINT8 xdata Ms[13], String[18];
@@ -499,7 +594,8 @@ void MesseageShow(void)
 	DIR_CrtDate  = (Ms[3] << 8) | Ms[4];
 	DIR_WrtTime  = (Ms[5] << 8) | Ms[6];
 	DIR_WrtDate  = (Ms[7] << 8) | Ms[8];
-	DIR_FileSize = ((UINT32)Ms[9] << 24) | ((UINT32)Ms[10] << 16) | (Ms[11] << 8) | (Ms[12]);
+	/* 默认小端对齐，改为大端对齐 */
+	DIR_FileSize = ((UINT32)Ms[9] << 24) | ((UINT32)Ms[10] << 16) | (UINT16)(Ms[11] << 8) | (Ms[12]);
 	
 	Hour = (DIR_CrtTime & 0xF800) >> 11;
 	Min  = (DIR_CrtTime & 0x07E0) >> 5;
