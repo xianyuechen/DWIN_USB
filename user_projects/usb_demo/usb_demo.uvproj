@@ -382,6 +382,11 @@
               <FilePath>.\main\main.c</FilePath>
             </File>
             <File>
+              <FileName>STARTUP_M5.A51</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\STARTUP_M5.A51</FilePath>
+            </File>
+            <File>
               <FileName>dgus_config.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\main\dgus_config.c</FilePath>

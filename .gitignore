@@ -1,15 +1,11 @@
 
-*.lst
-*.map
-*.obj
-*.htm
 *.SBR
 *.lnp
 *.hex
+*.htm
 *.bin
-*.uvopt
-DWIN_T5L_SDK/user_projects/usb_demo/obj/T5L51
-DWIN_T5L_SDK/user_projects/usb_demo/obj/T5L51
-DWIN_T5L_SDK/user_projects/usb_demo/obj/T5L51
+user_projects/usb_demo/obj/T5L51
+*.obj
 *.13762
-obj/T5L51
+*.uvopt
+*.lst
