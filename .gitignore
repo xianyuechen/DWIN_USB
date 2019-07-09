@@ -1,10 +1,9 @@
 
 *.lst
+*.map
 *.obj
-*.bin
 *.htm
-*.hex
-*.lnp
 *.SBR
-*.13762
-*.uvopt
+*.lnp
+*.hex
+*.bin
