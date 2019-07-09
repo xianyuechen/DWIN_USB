@@ -21,5 +21,6 @@
 /********************************对外函数声明*********************************/
 
 void USBModule(void);			/* USB模块初始化 */
+void AckSearchFile(void);
 
 #endif

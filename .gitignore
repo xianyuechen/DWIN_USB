@@ -9,3 +9,4 @@ user_projects/usb_demo/obj/T5L51
 *.13762
 *.uvopt
 *.lst
+*.map

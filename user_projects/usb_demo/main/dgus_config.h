@@ -16,8 +16,14 @@
 #ifndef _DGUS_CONFIG_H_
 #define _DGUS_CONFIG_H_
 
+
+#define PAGE_UP			0x5A
+#define PAGE_DOWN		0xA5
+
 /********************************对外函数声明*********************************/
 
+void DgusRegConfig(void);
 void MesseageShow(void);		/* 文件属性DGUS显示 */
+void PageAck(void);
 
 #endif

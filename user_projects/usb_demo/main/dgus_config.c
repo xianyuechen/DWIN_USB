@@ -15,7 +15,53 @@
 ******************************************************************************/
 #include "dgus_config.h"
 #include "lib.h"
+#include "string.h"
 
+void PageDriver(PUINT8 pNumber, UINT8 Type);
+
+void DgusRegConfig(void)
+{
+	UINT8 xdata Cmd[16];
+	UINT8 xdata filename[0x100];
+	memset(filename, 0, sizeof(filename));
+	memset(Cmd, 0, sizeof(Cmd));
+	//配置：创建或者删除文件
+	Cmd[0] = 0x55;
+	Cmd[1] = 0xE0;
+	Cmd[2] = 0x00;
+	WriteDGUS(0x5C5, Cmd, 4);
+	//配置：获取文件列表
+	filename[0] = '*';
+	WriteDGUS(0xE040, filename, 3);
+	Cmd[0] = 0xE0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xE0;
+	Cmd[3] = 0x40;
+	Cmd[4] = 0xE0;
+	Cmd[5] = 0x48;
+	WriteDGUS(0x5D1, Cmd, 6);
+	//配置：读写文件
+	Cmd[0] = 0xE0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xE2;
+	Cmd[3] = 0x00;
+	Cmd[4] = 0x00;
+	Cmd[5] = 0x00;
+	Cmd[6] = 0x00;
+	Cmd[7] = 0x10;
+	Cmd[8] = 0x00;
+	WriteDGUS(0x5C9, Cmd, 10);
+	//配置：文件属性获取或设置
+	Cmd[0] = 0xE0;
+	Cmd[1] = 0x00;
+	Cmd[2] = 0xE1;
+	Cmd[3] = 0x88;
+	WriteDGUS(0x5C1, Cmd, 4);
+	//SystemUP
+	Cmd[0] = 0xFF;
+	Cmd[1] = 0x00;
+	WriteDGUS(0x5D5, Cmd, 2);
+}
 
 /*****************************************************************************
  函 数 名  : 文件属性DGUS显示
@@ -74,4 +120,50 @@ void MesseageShow(void)
 	
 	sprintf(String, "%lu Byte", DIR_FileSize);
 	WriteDGUS(0xE1E0, String, sizeof(String));
+}
+
+void PageAck(void)
+{
+	UINT8 xdata Cmd[10];
+	UINT8 xdata Path[64];
+	UINT8 PageNumber = 0;
+	memset(Cmd, 0, sizeof(Cmd));
+	memset(Path, 0, sizeof(Path));
+	
+	ReadDGUS(0x5DA, Cmd, sizeof(Cmd));
+	ReadDGUS(0xE000, Path, sizeof(Path));
+	
+	PageNumber = Cmd[9];
+	if (Cmd[0] == 0x5A) PageDriver(&PageNumber, PAGE_UP);
+	if (Cmd[1] == 0x5A) PageDriver(&PageNumber, PAGE_DOWN);
+	Cmd[9] = PageNumber;
+	if (Path[0] != '/') 
+	{
+		Path[0] = '/';
+		WriteDGUS(0xE000, Path, 1);
+	}
+	memset(Cmd, 0, sizeof(Cmd)-1);
+	WriteDGUS(0x5DA, Cmd, sizeof(Cmd));
+}
+
+void PageDriver(PUINT8 pNumber, UINT8 Type)
+{
+	UINT8 xdata FileList[0x320];
+	UINT8 xdata FileShow[0x320];
+	PUINT8 pFileList = FileList;
+	UINT16 Offset = 0;
+	UINT8 i = 0;
+	memset(FileList, 0, sizeof(FileList));
+	memset(FileShow, 0, sizeof(FileShow));
+	AckSearchFile();
+	ReadDGUS(0xE048, FileList, sizeof(FileList));
+	while(FileList[(i++) * 140] != 0) if (i == 6) break;
+	i -= 2;
+	if (Type == PAGE_DOWN) (*pNumber)++;
+	if (Type == PAGE_UP) (*pNumber)--;
+	if (*pNumber > i) *pNumber = 0;
+	Offset = 20 * 7 * (*pNumber);
+	pFileList += Offset;
+	memcpy(FileShow, pFileList, sizeof(FileList) - Offset);
+	WriteDGUS(0xE048, FileShow, sizeof(FileShow));
 }

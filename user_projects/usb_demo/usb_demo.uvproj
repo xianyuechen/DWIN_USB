@@ -397,24 +397,9 @@
           <GroupName>lib</GroupName>
           <Files>
             <File>
-              <FileName>dgus_api.lib</FileName>
+              <FileName>dwin.lib</FileName>
               <FileType>4</FileType>
-              <FilePath>..\..\lib\dgus_api.lib</FilePath>
-            </File>
-            <File>
-              <FileName>dwin_51.lib</FileName>
-              <FileType>4</FileType>
-              <FilePath>..\..\lib\dwin_51.lib</FilePath>
-            </File>
-            <File>
-              <FileName>uart.lib</FileName>
-              <FileType>4</FileType>
-              <FilePath>..\..\lib\uart.lib</FilePath>
-            </File>
-            <File>
-              <FileName>usb.lib</FileName>
-              <FileType>4</FileType>
-              <FilePath>..\..\lib\usb.lib</FilePath>
+              <FilePath>..\..\lib\dwin.lib</FilePath>
             </File>
           </Files>
         </Group>
