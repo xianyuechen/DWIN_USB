@@ -17,6 +17,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "lib.h"
+#include "dgus_config.h"
 void Delay(void);
 UINT16 TIMES = 0;
 void main()
