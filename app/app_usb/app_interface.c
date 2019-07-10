@@ -174,7 +174,7 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 	UINT8 i = 0;
 	UINT8 j = 0;
 	UINT8 Status = 0;
-	memset(NameBuf, 0, sizeof(NameBuf));
+	memset(NameBuf, 0, PATH_NUMBER * 12);
 	/* (1) 把文件目录拆分成单独文件或者目录 */	
 	for (i = 0; i < PATH_NUMBER; i++)		
 	{
@@ -197,7 +197,7 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 		{
 			switch (Status)	/* 最后一级路径为文件 */
 			{
-				case ERR_MISS_FILE:				/* 发现是文件或目录不存在 */
+				case ERR_MISS_FILE:				/* 发现 文件或目录不存在 */
 				{
 					while (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j]));
 					break;	
@@ -215,12 +215,12 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 		}
 		switch (Status)	/* 中间路径默认为目录 */
 		{
-			case ERR_MISS_FILE:					/* 发现是文件或目录不存在 */
+			case ERR_MISS_FILE:					/* 发现 文件或目录不存在 */
 			{
 				while (USB_INT_SUCCESS != CH376DirCreate(NameBuf[j]));
 				break;	
 			}
-			case USB_INT_SUCCESS: 				/* 发现是文件 */
+			case USB_INT_SUCCESS: 				/* 发现 文件 */
 			{
 				while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));
 				j = 0;
