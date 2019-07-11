@@ -15,15 +15,15 @@
 ******************************************************************************/
 
 #include "usb_dgus.h"
-
-/********************************对内函数声明*********************************/
-
 UINT8 AckDiskInit(void);
 void AckReadOrWriteFile(void);
 void AckGetOrSetPath(void);
 void AckSystemUp(void);
 void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
-void ResetT5L(void);
+
+/********************************对内函数声明*********************************/
+
+
 
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
@@ -100,6 +100,7 @@ void USBModule(void)
 	if (Flag == FILE_ALL || Flag == FILE_T5L51_BIN || Flag == FILE_DWINOS_BIN || 
 		Flag == FILE_XXX_LIB || Flag == FILE_XXX_BIN || Flag == FILE_XXX_ICL)
 		ACK = ACK_SYSTEM_UP;
+		
 	
 	/* (3) 应答响应 */
 	if (ACK == ACK_SYSTEM_UP) AckSystemUp();
@@ -374,6 +375,7 @@ void AckGetOrSetPath(void)
 void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
+	UINT8 xdata Reset[4] = {0x55, 0xAA, 0x5A, 0xA5};
 	UINT8 FileType = 0;
 	UINT16 FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
@@ -387,7 +389,7 @@ void AckSystemUp(void)
 	Cmd[3] = Times >> 8;
 	Cmd[4] = (UINT8)Times;
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
-	ResetT5L();
+	WriteDGUS(0x04, Reset, 4);
 }
 
 /*****************************************************************************
@@ -488,10 +490,4 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 		}
 	}
 END:{}
-}
-
-void ResetT5L(void)
-{
-	UINT8 xdata Cmd[4] = {0x55, 0xAA, 0x5A, 0xA5};
-	WriteDGUS(0x04, Cmd, 4);
 }

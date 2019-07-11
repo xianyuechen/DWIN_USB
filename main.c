@@ -27,9 +27,6 @@ void Delay(void);
 UINT16 TIMES = 0;
 void main()
 {
-	UINT8 xdata FileName[64] = {0};
-	UINT8 xdata cmd[4] = {0};
-	UINT16 NameLen = 64;
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
 	UART5_Init();
@@ -37,21 +34,7 @@ void main()
 	USBModule();
 	MesseageShow();
 	PageClickAck();
-	BackToPreviousAck();/*
-	ReadDGUS(0x5C4, cmd, 4);
-	if (cmd[0] == 0x5A || cmd[0] == 0xA5)
-	{
-		UART5_SendString("11111111");
-		AckCreateOrDelPath();
-		
-		ReadDgusClientString(0xE000, FileName, &NameLen);
-		FileName[NameLen] = 0;
-		UART5_SendString(FileName);
-		CreateFileOrDir(FileName, 0x55);
-		cmd[0] = 0;
-		WriteDGUS(0x5C4, cmd, 4);
-		
-	}*/
+	BackToPreviousAck();
 }
 
 void T0_ISR_PC(void)	interrupt 1

@@ -23,8 +23,8 @@
 #include "driver/usb/para_port.h"
 #include "app/app_usb/file_sys.h"
 #include "driver/dgus/dgus.h"
-#define FILE		0x14
-#define DIR			0x41
+#define FILE		(0x14)
+#define DIR			(0x41)
 void PageDriver(PUINT8 pNumber, UINT8 Type);
 void ClickPathUpdate(UINT8 Number);
 UINT8 GetPathAttr(PUINT8 pPath);
