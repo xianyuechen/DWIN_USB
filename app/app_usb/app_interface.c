@@ -198,6 +198,11 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 			if (Status == ERR_MISS_FILE)							/* 发现 文件或目录不存在 */
 			{
 				if (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j])) return CH376Error();
+				CH376FileOpen(NameBuf[j]);							/* 这里处理创建文件出现乱码头的问题 */
+				NameBuf[j + 1][0] = 0;
+				NameBuf[j + 1][1] = 0;
+				CH376SectorWrite(NameBuf[j + 1], 2, NULL);
+				CH376CloseFile(0);
 			}
 			if (Status == ERR_OPEN_DIR)	return CH376Error();		/* 发现是目录 */
 		}
