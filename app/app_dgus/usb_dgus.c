@@ -18,10 +18,10 @@
 
 /********************************对内函数声明*********************************/
 
+UINT8 AckDiskInit(void);
 void AckReadOrWriteFile(void);
 void AckGetOrSetPath(void);
 void AckSystemUp(void);
-void AckDiskInit(void);
 void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
 void ResetT5L(void);
 
@@ -77,8 +77,9 @@ void ResetT5L(void);
 void USBModule(void)
 {
 	UINT8 ACK = 0, Flag = 0;
-	
-	AckDiskInit();
+	/* (1) 固定对USB进行连接查询 */
+	if (DWIN_OK != AckDiskInit()) return;
+	/* (2) 扫描DGUS变量标志位 确定相应应答标志 后扫描的寄存器 执行优先级高 */
 	ReadDGUS(DGUS_ADDR_GET_OR_SET_PATH, &Flag, 1);
 	if (Flag == FLAG_READ || Flag == FLAG_WRITE)
 		ACK = ACK_GET_OR_SET_PATH;
@@ -99,58 +100,13 @@ void USBModule(void)
 	if (Flag == FILE_ALL || Flag == FILE_T5L51_BIN || Flag == FILE_DWINOS_BIN || 
 		Flag == FILE_XXX_LIB || Flag == FILE_XXX_BIN || Flag == FILE_XXX_ICL)
 		ACK = ACK_SYSTEM_UP;
-	/* (1) 扫描DGUS变量标志位 确定相应应答标志 后扫描的寄存器 执行优先级高 */
-	/*
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_READ) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_WRITE))
-		ACK = ACK_GET_OR_SET_PATH;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_CREATE_OR_DEL_PATH, FLAG_CREATE) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_CREATE_OR_DEL_PATH, FLAG_DELETE))
-		ACK = ACK_CREATE_OR_DEL_PATH;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_READ_OR_WRITE_FILE, FLAG_READ) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_READ_OR_WRITE_FILE, FLAG_WRITE))
-		ACK = ACK_READ_OR_WRITE_FILE;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SEARCH_FILE, FLAG_START))
-		ACK = ACK_SEARCH_FILE;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_ALL) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_T5L51_BIN) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_DWINOS_BIN) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_LIB) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_BIN) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_ICL))
-		ACK = ACK_SYSTEM_UP;*/
-	/* (2) 应答响应 */
-	switch (ACK)
-	{
-		case ACK_SYSTEM_UP:
-		{
-			AckSystemUp();
-			ResetT5L();
-			break;
-		}
-		case ACK_SEARCH_FILE:
-		{
-			AckSearchFile();
-			break;
-		}
-		case ACK_READ_OR_WRITE_FILE:
-		{
-			AckReadOrWriteFile();
-			break;
-		}
-		case ACK_CREATE_OR_DEL_PATH:
-		{
-			AckCreateOrDelPath();
-			break;
-		}
-		case ACK_GET_OR_SET_PATH:
-		{
-			AckGetOrSetPath();
-			break;
-		}
-		default:
-			break;
-	}
+	
+	/* (3) 应答响应 */
+	if (ACK == ACK_SYSTEM_UP) AckSystemUp();
+	else if (ACK == ACK_SEARCH_FILE) AckSearchFile();
+	else if (ACK == ACK_READ_OR_WRITE_FILE) AckReadOrWriteFile();
+	else if (ACK == ACK_CREATE_OR_DEL_PATH) AckCreateOrDelPath();
+	else if (ACK == ACK_GET_OR_SET_PATH) AckGetOrSetPath();
 }
 
 /*****************************************************************************
@@ -431,21 +387,24 @@ void AckSystemUp(void)
 	Cmd[3] = Times >> 8;
 	Cmd[4] = (UINT8)Times;
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
+	ResetT5L();
 }
 
 /*****************************************************************************
  函 数 名  : AckDiskInit
  功能描述  : 响应：芯片和磁盘初始化
  输入参数  : 无	 
- 输出参数  : 无
+ 输出参数  : DWIN_OK 初始化成功
+			 其他失败
  修改历史  :
  日    期  : 2019年7月8日
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void AckDiskInit(void)
+UINT8 AckDiskInit(void)
 {
 	UINT8 xdata Cmd[4];
+	UINT8 Status = DWIN_OK;
 	memset(Cmd, 0, sizeof(Cmd));
 	
 	ReadDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));
@@ -457,6 +416,7 @@ void AckDiskInit(void)
 		{
 			Cmd[1] = DISK_NO_CONNECT;
 			Cmd[2] = DISK_NO_INIT;
+			Status = DWIN_ERROR;
 			goto END;
 		}
 	}
@@ -464,12 +424,17 @@ void AckDiskInit(void)
 	if (Cmd[1] == DISK_NO_CONNECT)	/* 如果磁盘为未连接，设置磁盘未初始化状态 */
 	{
 		Cmd[2] = DISK_NO_INIT;
+		Status = DWIN_ERROR;
 		goto END;
 	}
 	if (Cmd[2] == DISK_NO_INIT)		/* 如果磁盘为未初始化，进行磁盘初始化 */
+	{
 		Cmd[2] = CheckDiskInit();
+		if (Cmd[2] == DISK_NO_INIT) Status = DWIN_ERROR;
+	}
 END:
-	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));	
+	WriteDGUS(DGUS_ADDR_DISK_STATUS, Cmd, sizeof(Cmd));
+	return Status;
 }
 
 /*****************************************************************************
