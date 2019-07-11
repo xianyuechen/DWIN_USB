@@ -432,61 +432,49 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
 *****************************************************************************/
 void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
 {
-	switch (FileType)
+	if (FileType == FILE_T5L51_BIN)
 	{
-		case FILE_T5L51_BIN:
-		{
-			strcpy(pString, "T5L51");
-			pString += 6;
-			strcpy(pString, ".BIN");
-			*pFileAddr = ADDR_T5L51_BIN;
-			*pUpSpace = SPACE_1;
-			break;
-		}
-
-		case FILE_DWINOS_BIN:
-		{
-			strcpy(pString, "DWINOS");
-			pString += 6;
-			strcpy(pString, ".BIN");
-			*pFileAddr = ADDR_DWIN_OS;
-			*pUpSpace = SPACE_1;
-			break;
-		}
-
-		case FILE_XXX_LIB:
-		{
-			sprintf(pString, "%d", FileNumber);
-			pString += 6;
-			strcpy(pString, ".LIB");
-			*pFileAddr = LIB((UINT32)FileNumber);
-			*pUpSpace = SPACE_1;
-			break;
-		}
-		case FILE_XXX_BIN:
-		{
-			sprintf(pString, "%d", FileNumber);
-			pString += 6;
-			strcpy(pString, ".BIN");
-			pString += 6;
-			strcpy(pString, ".DZK");
-			pString += 6;
-			strcpy(pString, ".HZK");
-			*pFileAddr = FONT((UINT32)FileNumber);
-			*pUpSpace = SPACE_2;
-			break;
-		}
-		case FILE_XXX_ICL:
-		{
-			sprintf(pString, "%d", FileNumber);
-			pString += 6;
-			strcpy(pString, ".ICL");
-			*pFileAddr = ICL((UINT32)FileNumber);
-			*pUpSpace = SPACE_2;
-			break;
-		}
-		default:
-			break;
+		strcpy(pString, "T5L51");
+		pString += 6;
+		strcpy(pString, ".BIN");
+		*pFileAddr = ADDR_T5L51_BIN;
+		*pUpSpace = SPACE_1;
+	}
+	else if (FileType == FILE_DWINOS_BIN)
+	{
+		strcpy(pString, "DWINOS");
+		pString += 6;
+		strcpy(pString, ".BIN");
+		*pFileAddr = ADDR_DWIN_OS;
+		*pUpSpace = SPACE_1;
+	}
+	else if (FileType == FILE_XXX_LIB)
+	{
+		sprintf(pString, "%d", FileNumber);
+		pString += 6;
+		strcpy(pString, ".LIB");
+		*pFileAddr = LIB((UINT32)FileNumber);
+		*pUpSpace = SPACE_1;
+	}
+	else if (FileType == FILE_XXX_BIN)
+	{
+		sprintf(pString, "%d", FileNumber);
+		pString += 6;
+		strcpy(pString, ".BIN");
+		pString += 6;
+		strcpy(pString, ".DZK");
+		pString += 6;
+		strcpy(pString, ".HZK");
+		*pFileAddr = FONT((UINT32)FileNumber);
+		*pUpSpace = SPACE_2;
+	}
+	else if (FileType == FILE_XXX_ICL)
+	{
+		sprintf(pString, "%d", FileNumber);
+		pString += 6;
+		strcpy(pString, ".ICL");
+		*pFileAddr = ICL((UINT32)FileNumber);
+		*pUpSpace = SPACE_2;
 	}
 }
 
