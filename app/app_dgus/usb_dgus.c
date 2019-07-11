@@ -18,7 +18,6 @@
 
 /********************************对内函数声明*********************************/
 
-UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value);
 void AckReadOrWriteFile(void);
 void AckGetOrSetPath(void);
 void AckSystemUp(void);
@@ -74,11 +73,34 @@ void ResetT5L(void);
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
+
 void USBModule(void)
 {
-	UINT8 ACK = 0;
+	UINT8 ACK = 0, Flag = 0;
+	
 	AckDiskInit();
+	ReadDGUS(DGUS_ADDR_GET_OR_SET_PATH, &Flag, 1);
+	if (Flag == FLAG_READ || Flag == FLAG_WRITE)
+		ACK = ACK_GET_OR_SET_PATH;
+	
+	ReadDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, &Flag, 1);
+	if (Flag == FLAG_CREATE || Flag == FLAG_DELETE)
+		ACK = ACK_CREATE_OR_DEL_PATH;
+	
+	ReadDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, &Flag, 1);
+	if (Flag == FLAG_READ || Flag == FLAG_WRITE)
+		ACK = ACK_READ_OR_WRITE_FILE;
+	
+	ReadDGUS(DGUS_ADDR_SEARCH_FILE, &Flag, 1);
+	if (Flag == FLAG_START)
+		ACK = ACK_SEARCH_FILE;
+	
+	ReadDGUS(DGUS_ADDR_SYSTEM_UP, &Flag, 1);
+	if (Flag == FILE_ALL || Flag == FILE_T5L51_BIN || Flag == FILE_DWINOS_BIN || 
+		Flag == FILE_XXX_LIB || Flag == FILE_XXX_BIN || Flag == FILE_XXX_ICL)
+		ACK = ACK_SYSTEM_UP;
 	/* (1) 扫描DGUS变量标志位 确定相应应答标志 后扫描的寄存器 执行优先级高 */
+	/*
 	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_READ) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_GET_OR_SET_PATH, FLAG_WRITE))
 		ACK = ACK_GET_OR_SET_PATH;
@@ -96,18 +118,10 @@ void USBModule(void)
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_LIB) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_BIN) ||
 		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_SYSTEM_UP, FILE_XXX_ICL))
-		ACK = ACK_SYSTEM_UP;
-	if (DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_CONNECT) ||
-		DWIN_OK == CompareDgusRegValue(DGUS_ADDR_DISK_STATUS, DISK_NO_INIT))
-		ACK = ACK_DISK_INIT;
+		ACK = ACK_SYSTEM_UP;*/
 	/* (2) 应答响应 */
 	switch (ACK)
 	{
-		case ACK_DISK_INIT:
-		{
-			AckDiskInit();
-			break;
-		}
 		case ACK_SYSTEM_UP:
 		{
 			AckSystemUp();
@@ -126,7 +140,7 @@ void USBModule(void)
 		}
 		case ACK_CREATE_OR_DEL_PATH:
 		{
-			//AckCreateOrDelPath();
+			AckCreateOrDelPath();
 			break;
 		}
 		case ACK_GET_OR_SET_PATH:
@@ -137,26 +151,6 @@ void USBModule(void)
 		default:
 			break;
 	}
-}
-
-/*****************************************************************************
- 函 数 名  : CompareDgusRegValue
- 功能描述  : 比较DGUS寄存器首字节的数字是否和Value相等
- 输入参数  : UINT32 AddrDgus	DGUS寄存器地址
- 			 UINT8 Value		待比较的字节 	 
- 输出参数  : DWIN_OK    数值相等
- 			 DWIN_ERROR 数值不等
- 修改历史  :
- 日    期  : 2019年7月8日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-UINT8 CompareDgusRegValue(UINT32 AddrDgus, UINT8 Value)
-{
-	UINT8 DgusValue = 0;
-	ReadDGUS(AddrDgus, &DgusValue, 1);
-	if (DgusValue == Value) return DWIN_OK;
-	else return DWIN_ERROR;
 }
 
 /*****************************************************************************
@@ -220,7 +214,7 @@ void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen)
 *****************************************************************************/
 void AckCreateOrDelPath(void)
 {
-	UINT8 xdata Cmd[8];
+	UINT8 Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
 	UINT8 Mod = 0, FileType = 0;
 	UINT16 PathLength = 0, AddrDgusPath = 0;
@@ -230,27 +224,19 @@ void AckCreateOrDelPath(void)
 	ReadDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
 	Mod = Cmd[0];
 	FileType = Cmd[2];
-	AddrDgusPath = (Cmd[3] << 8) | Cmd[4];
+	AddrDgusPath = ((UINT16)Cmd[3] << 8) | Cmd[4];
 	PathLength = PATH_LENGTH;
 	/* (2) 读取路径名 */
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
-	Path[PathLength + 1] = 0;
 	/* (3) 根据控制字执行创建/删除 文件/目录的操作 */
-	switch (Mod)
+	if (Mod == FLAG_CREATE)
 	{
-		case FLAG_CREATE:
-		{
-			Cmd[1] = CreateFileOrDir(Path, FileType);
-			break;
-		}
-		case FLAG_DELETE:
-		{
-			Cmd[1] = RmFileOrDir(Path);
-			break;
-		}
-		default:
-			break;
+		Cmd[1] = CreateFileOrDir(Path, FileType);
+	}
+	if (Mod == FLAG_DELETE)
+	{
+		Cmd[1] = RmFileOrDir(Path);
 	}
 	/* (4) 写入结果 */
 	Cmd[0] = 0;			/* 清除标志位 */
@@ -350,30 +336,21 @@ void AckReadOrWriteFile(void)
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
 	/* (3) 根据标志位进行文件读取或者文件写入 */
-	switch (Mod)
+	if (Mod == FLAG_READ)
 	{
-		case FLAG_READ:
-		{
-			Status = ReadFile(Path, Buf, ByteSize, SectorOffset);
-			WriteDgusClientString(AddrDgusFileMsg, Buf, ByteSize);
-			if (Status == DWIN_OK) Cmd[1] = 0x00;
-			else Cmd[1] = 0xFF;
-			break;
-		}
-		case FLAG_WRITE:
-		{
-			ReadDgusClientString(AddrDgusFileMsg, Buf, &ByteSize);
-			Status = WriteFile(Path, Buf, ByteSize, SectorOffset);
-			if (Status == DWIN_OK) Cmd[1] = 0x00;
-			else Cmd[1] = 0xFF;
-			break;
-		}
-		default:
-		{
-			Cmd[1] = 0xFF;
-			break;
-		}
+		Status = ReadFile(Path, Buf, ByteSize, SectorOffset);
+		WriteDgusClientString(AddrDgusFileMsg, Buf, ByteSize);
+		if (Status == DWIN_OK) Cmd[1] = 0x00;
+		else Cmd[1] = 0xFF;
 	}
+	else if (Mod == FLAG_WRITE)
+	{
+		ReadDgusClientString(AddrDgusFileMsg, Buf, &ByteSize);
+		Status = WriteFile(Path, Buf, ByteSize, SectorOffset);
+		if (Status == DWIN_OK) Cmd[1] = 0x00;
+		else Cmd[1] = 0xFF;
+	}
+	else Cmd[1] = 0xFF;
 	/* (6) 发送执行结果 */
 	Cmd[0] = 0x00;		/* 清除标志位 */
 	WriteDGUS(DGUS_ADDR_READ_OR_WRITE_FILE, Cmd, sizeof(Cmd));
@@ -411,26 +388,17 @@ void AckGetOrSetPath(void)
 	Path[PathLength] = 0;
 	Path[PathLength + 1] = 0;
 	/* (3) 根据标志位进行文件属性读取或者属性写入 */
-	switch(Mod)
+	if (Mod == FLAG_READ)
 	{
-		case FLAG_READ:
-		{
-			Status = GetFileMessage(Path, DirName);
-			WriteDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
-			break;
-		}
-		case FLAG_WRITE:
-		{
-			ReadDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
-			Status = SetFileMessage(Path, DirName);
-			break;
-		}
-		default:
-		{
-			Status = DWIN_ERROR;
-			break;
-		}
+		Status = GetFileMessage(Path, DirName);
+		WriteDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
 	}
+	else if (Mod == FLAG_WRITE)
+	{
+		ReadDGUS(AddrDgusDirAttr, DirName, sizeof(DirName));
+		Status = SetFileMessage(Path, DirName);
+	}
+	else Status = DWIN_ERROR;
 	/* (6) 发送执行结果 */
 	Cmd[0] = 0x00;		/* 清除标志位 */
 	Cmd[1] = Status;
@@ -524,44 +492,34 @@ void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 		if (DWIN_OK == SystemUpdate(FileType, FileNumber)) (*pTimes)++;
 		goto END;
 	}
-	switch(FileType)	/* 对于某一类文件升级采取分成单个文件进行递归调用 */
+	/* 对于某一类文件升级采取分成单个文件进行递归调用 */
+	if (FileType == FILE_ALL)
 	{
-		case FILE_ALL:
+		SystemUpDriver(FILE_T5L51_BIN, 	0x00FF, pTimes);
+		SystemUpDriver(FILE_DWINOS_BIN, 0x00FF, pTimes);
+		SystemUpDriver(FILE_XXX_LIB, FLAG_ALL, pTimes);
+		SystemUpDriver(FILE_XXX_BIN, FLAG_ALL, pTimes);
+		SystemUpDriver(FILE_XXX_ICL, FLAG_ALL, pTimes);
+	}
+	else if (FileType == FILE_XXX_LIB)
+	{
+		for (Num = 0; Num < 1000; Num++)
 		{
-			SystemUpDriver(FILE_T5L51_BIN, 	0x00FF, pTimes);
-			SystemUpDriver(FILE_DWINOS_BIN, 0x00FF, pTimes);
-			SystemUpDriver(FILE_XXX_LIB, FLAG_ALL, pTimes);
-			SystemUpDriver(FILE_XXX_BIN, FLAG_ALL, pTimes);
-			SystemUpDriver(FILE_XXX_ICL, FLAG_ALL, pTimes);
-			break;
+			SystemUpDriver(FILE_XXX_LIB, Num, pTimes);
 		}
-		case FILE_T5L51_BIN:
-			break;
-		case FILE_DWINOS_BIN:
-			break;
-		case FILE_XXX_LIB:
+	}
+	else if (FileType == FILE_XXX_BIN)
+	{
+		for (Num = 0; Num < 32; Num++)	/* 0-31存放字库文件 */
 		{
-			for (Num = 0; Num < 1000; Num++)
-			{
-				SystemUpDriver(FILE_XXX_LIB, Num, pTimes);
-			}
-			break;
+			SystemUpDriver(FILE_XXX_BIN, Num, pTimes);
 		}
-		case FILE_XXX_BIN:		/* 0-31存放字库文件 */
+	}
+	else if (FileType == FILE_XXX_ICL)	/* 32-999存放ICL文件 */
+	{
+		for (Num = 32; Num < 1000; Num++)
 		{
-			for (Num = 0; Num < 32; Num++)
-			{
-				SystemUpDriver(FILE_XXX_BIN, Num, pTimes);
-			}
-			break;
-		}
-		case FILE_XXX_ICL:		/* 32-999存放ICL文件 */
-		{
-			for (Num = 32; Num < 1000; Num++)
-			{
-				SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
-			}
-			break;
+			SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
 		}
 	}
 END:{}

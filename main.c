@@ -37,20 +37,21 @@ void main()
 	USBModule();
 	MesseageShow();
 	PageClickAck();
-	BackToPreviousAck();
+	BackToPreviousAck();/*
 	ReadDGUS(0x5C4, cmd, 4);
-	if (cmd[0] == 0x5A)
+	if (cmd[0] == 0x5A || cmd[0] == 0xA5)
 	{
+		UART5_SendString("11111111");
 		AckCreateOrDelPath();
-		/*
+		
 		ReadDgusClientString(0xE000, FileName, &NameLen);
 		FileName[NameLen] = 0;
 		UART5_SendString(FileName);
 		CreateFileOrDir(FileName, 0x55);
 		cmd[0] = 0;
 		WriteDGUS(0x5C4, cmd, 4);
-		*/
-	}
+		
+	}*/
 }
 
 void T0_ISR_PC(void)	interrupt 1

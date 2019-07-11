@@ -171,6 +171,7 @@ UINT8 CH376FileOpenPath(PUINT8 PathName)  	/* 打开多级目录下的文件或�
 UINT8 CH376FileCreate(PUINT8 PathName)		/* 在根目录或者当前目录创建文件 */
 {
 	CH376SetFileName(PathName);
+	CH376WriteVar32(VAR_CURRENT_CLUST, 0);
 	return (CH376SendCmdWaitInt(CMD0H_FILE_CREATE));
 }
 

@@ -190,44 +190,25 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 		if (*pPathName == 0) break;
 	}
 	/* (2) 打开每一级目录或文件 不存在则新建 存在与之冲突的文件或目录则删除 */
-	for (j = 0; j < i+1; j++)				
+	for (j = 0; j < i; j++)				
 	{
 		Status = CH376FileOpen(NameBuf[j]);
-		if (j == i && TypePath == PATH_FILE)	
+		if (j == (i - 1) && TypePath == PATH_FILE)	
 		{
-			switch (Status)	/* 最后一级路径为文件 */
+			if (Status == ERR_MISS_FILE)							/* 发现 文件或目录不存在 */
 			{
-				case ERR_MISS_FILE:				/* 发现 文件或目录不存在 */
-				{
-					while (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j]));
-					break;	
-				}
-				case ERR_OPEN_DIR:				/* 发现是目录 */
-				{
-					if (USB_INT_SUCCESS != CH376DeleteFile(NameBuf[j])) return CH376Error();
-					j = 0;
-					break;
-				}
-				default:						/* 文件被打开 */
-					break;
+				if (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j])) return CH376Error();
 			}
-			continue;	
+			if (Status == ERR_OPEN_DIR)	return CH376Error();		/* 发现是目录 */
 		}
-		switch (Status)	/* 中间路径默认为目录 */
+		else
 		{
-			case ERR_MISS_FILE:					/* 发现 文件或目录不存在 */
+			if (Status == ERR_MISS_FILE)							/* 发现 目录不存在 */
 			{
-				while (USB_INT_SUCCESS != CH376DirCreate(NameBuf[j]));
-				break;	
+				if (USB_INT_SUCCESS != CH376DirCreate(NameBuf[j])) return CH376Error();
+				CH376FileOpen(NameBuf[j]);
 			}
-			case USB_INT_SUCCESS: 				/* 发现 文件 */
-			{
-				while (USB_INT_SUCCESS == CH376DeleteFile(NameBuf[j]));
-				j = 0;
-				break;
-			}
-			default:							/* 目录被打开 */
-				break;
+			if (Status == USB_INT_SUCCESS) return CH376Error();		/* 发现 文件 */
 		}
 	}
 	return DWIN_OK;
@@ -246,9 +227,11 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 *****************************************************************************/
 UINT8 RmFileOrDir(PUINT8 pPathName)
 {
+	UINT8 i = 0;
 	AlphabetTransfrom(pPathName);
-	if (USB_INT_SUCCESS == CH376FileDeletePath(pPathName)) return DWIN_OK;
-	else return DWIN_ERROR;
+	for (i = 20; i != 0; i--)
+		if (USB_INT_SUCCESS == CH376FileDeletePath(pPathName)) return DWIN_OK;
+	return DWIN_ERROR;
 }
 
 /*****************************************************************************
@@ -348,27 +331,18 @@ UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOff
 		Flag = 	WRITE_FROM_HEAD;
 	}
 	/* (2) 根据标志变量选择写方式 从文件开始/从文件结尾 */
-	switch (Flag)
+	if (Flag == WRITE_FROM_HEAD) CH376SecLocate(0);
+	else if (Flag == WRITE_FROM_END)	/* 若存在尾部数据需要先重新拼接写入 */
 	{
-		case WRITE_FROM_HEAD:
+		FileSize = CH376GetFileSize();
+		EndBufSize = FileSize % DEF_SECTOR_SIZE;
+		if (EndBufSize)		/* 是否存在尾部零头数据 根据能否整除512判断 */ 
 		{
-			CH376SecLocate(0);
-			break;
+			Status = CH376SectorRead(EndBuf, 1, NULL);
 		}
-		case WRITE_FROM_END:	/* 若存在尾部数据需要先重新拼接写入 */
-		{
-			FileSize = CH376GetFileSize();
-			EndBufSize = FileSize % DEF_SECTOR_SIZE;
-			if (EndBufSize)		/* 是否存在尾部零头数据 根据能否整除512判断 */ 
-			{
-				Status = CH376SectorRead(EndBuf, 1, NULL);
-			}
-			CH376SecLocate(0xFFFFFFFF);
-			break;
-		}
-		default:
-			return CH376Error();
+		CH376SecLocate(0xFFFFFFFF);
 	}
+	else return CH376Error();
 	FileSize += DataLen;
 	if (EndBufSize != 0)		/* 有零头数据 先与pData组合成数据包 写一次不大于4K的数据 */ 
 	{
