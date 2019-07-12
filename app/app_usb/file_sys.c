@@ -16,6 +16,7 @@
 #include "file_sys.h"
 #include "driver/usb/para_port.h"
 #include "string.h"
+#include "t5los8051.h"
 
 /********************************内部函数声明*********************************/
 static UINT8 Wait376Interrupt(void);

@@ -21,15 +21,13 @@
 #include "string.h"
 #include "stdio.h"
 
+/********************************对内函数声明*********************************/
+
 static UINT8 AckDiskInit(void);
 static void AckReadOrWriteFile(void);
 static void AckGetOrSetPath(void);
 static void AckSystemUp(void);
 static void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
-
-/********************************对内函数声明*********************************/
-
-
 
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */

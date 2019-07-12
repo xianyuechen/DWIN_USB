@@ -17,8 +17,6 @@
 #ifndef _PARA_PORT_H_
 #define _PARA_PORT_H_
 
-#include "t5los8051.h"
-#include "intrins.h"
 #include "driver/system/sys.h"	
 
 /********************************对外函数声明*********************************/

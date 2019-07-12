@@ -20,18 +20,34 @@
 #include "app/app_usb/app_interface.h"
 #include "app/app_dgus/usb_dgus.h"
 #include "driver/uart/uart.h"
-#include "driver/usb/ch376.h"
 #include "driver/usb/para_port.h"
 #include "app/app_usb/file_sys.h"
 #include "driver/dgus/dgus.h"
 
-#define FILE		(0x14)
-#define DIR			(0x41)
+/********************************宏定义***************************************/
+#define FILE			(0x14)
+#define DIR				(0x41)
+#define PAGE_UP			(0x5A)
+#define PAGE_DOWN		(0xA5)
 
-void PageDriver(PUINT8 pNumber, UINT8 Type);
-void ClickPathUpdate(UINT8 Number);
-UINT8 GetPathAttr(PUINT8 pPath);
-void DelPath(void);
+/********************************对内函数声明*********************************/
+
+static void PageDriver(PUINT8 pNumber, UINT8 Type);
+static void ClickPathUpdate(UINT8 Number);
+static UINT8 GetPathAttr(PUINT8 pPath);
+static void DelPath(void);
+static void MesseageShow(void);		/* 文件属性DGUS显示 */
+static void PageClickAck(void);
+static void BackToPreviousAck(void);
+
+/********************************函数定义开始*********************************/
+
+void DGUSDemoInit(void)
+{
+	MesseageShow();
+	PageClickAck();
+	BackToPreviousAck();
+}
 
 void DgusRegConfig(void)
 {
@@ -88,7 +104,7 @@ void DgusRegConfig(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void MesseageShow(void)
+static void MesseageShow(void)
 {
 	UINT8 xdata Ms[13], String[18];
 	UINT16 DIR_CrtTime = 0, DIR_CrtDate = 0, DIR_WrtTime = 0, DIR_WrtDate = 0;
@@ -137,7 +153,7 @@ void MesseageShow(void)
 	WriteDGUS(0xE1E0, String, sizeof(String));
 }
 
-void PageClickAck(void)
+static void PageClickAck(void)
 {
 	UINT8 xdata Cmd[10];
 	UINT8 xdata DgusShowPath[64];
@@ -183,7 +199,7 @@ void PageClickAck(void)
 	WriteDGUS(0x5DA, Cmd, sizeof(Cmd));
 }
 
-void PageDriver(PUINT8 pNumber, UINT8 Type)		/* 翻页处理驱动：原理是重新获取文件列表 根据文件页码重新写入制定区域 */
+static void PageDriver(PUINT8 pNumber, UINT8 Type)		/* 翻页处理驱动：原理是重新获取文件列表 根据文件页码重新写入制定区域 */
 {
 	UINT8 xdata FileList[0x320];
 	UINT8 xdata FileShow[0x320];
@@ -205,7 +221,7 @@ void PageDriver(PUINT8 pNumber, UINT8 Type)		/* 翻页处理驱动：原理是�
 	WriteDGUS(0xE048, FileShow, sizeof(FileShow));
 }
 
-void ClickPathUpdate(UINT8 Number)
+static void ClickPathUpdate(UINT8 Number)
 {
 	UINT8 xdata Path[64];
 	UINT8 xdata FirstPageList[140];
@@ -234,7 +250,7 @@ void ClickPathUpdate(UINT8 Number)
 	WriteDgusClientString(0xE000, Path, strlen(Path));
 }
 
-UINT8 GetPathAttr(PUINT8 pPath)
+static UINT8 GetPathAttr(PUINT8 pPath)
 {
 	UINT8 Status = 0;
 	AlphabetTransfrom(pPath);
@@ -243,7 +259,7 @@ UINT8 GetPathAttr(PUINT8 pPath)
 	return Status;
 }
 
-void BackToPreviousAck(void)
+static void BackToPreviousAck(void)
 {
 	UINT8 Cmd[4];
 	memset(Cmd, 0, sizeof(Cmd));
@@ -256,7 +272,7 @@ void BackToPreviousAck(void)
 	}
 }
 
-void DelPath(void)
+static void DelPath(void)
 {
 	UINT8 xdata DgusShowPath[64];
 	UINT8 i = 0, PathType;

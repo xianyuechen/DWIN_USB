@@ -764,7 +764,7 @@ UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
 	UART5_SendString("\n");
 	//
 	/* (5) 把文件信息发送到升级空间 */
-	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
+	//SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
 }
 
