@@ -581,9 +581,11 @@ static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT3
 static void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
 	UINT8 Flag = 0;
+	UART5_Sendbyte(0xFF);
 	do
 	{
 		ReadDGUS(AddrDgus, &Flag, 1);
+		UART5_Sendbyte(Flag);
 	}
 	while(Flag == FLAG_EN);
 }
@@ -738,8 +740,8 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
 	//
-	UART5_SendString(FilePath);
-	UART5_SendString("\n");
+	//UART5_SendString(FilePath);
+	//UART5_SendString("\n");
 	//
 	UpSpace = Protect;
 	/* (4) 把文件信息发送到升级空间 */
