@@ -499,25 +499,6 @@ static void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace,
 }
 
 /*****************************************************************************
- 函 数 名  : SysUpGetDWINFile
- 功能描述  : 从DWIN_SET路径下列出所有文件
- 输入参数  : PUINT8 pMatchList	：匹配列表接收字符串
- 输出参数  : 无
- 修改历史  :
- 日    期  : 2019年7月8日
- 作    者  : chenxianyue
- 修改内容  : 创建
-*****************************************************************************/
-UINT8 SysUpGetDWINFile(PUINT8 pMatchList)
-{
-	UINT8 Status = 0;
-	UINT8 i = 0;
-	Status = CH376MatchFile("*", DWIN_DIR, (P_FAT_NAME)pMatchList);
-	if (Status == ERR_MISS_FILE) return DWIN_OK; 
-	else return DWIN_ERROR;
-}
-
-/*****************************************************************************
  函 数 名  : NumberStringMatch
  功能描述  : 数字编号的文件匹配，其他开头的文件会直接默认成功
  输入参数  : PUINT8 pSource		：被匹配的文件字符串
@@ -738,33 +719,32 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber)
+UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 {
 	UINT8 xdata String[24]; //4 * 6
 	UINT8 xdata FilePath[22];
-	UINT8 xdata FileList[sizeof(FAT_NAME) * DIR_FILE_MAX];
 	UINT8 UpSpace = 0, Status = 0;
+	UINT8 Protect = 0;
 	UINT32 AddrFile = 0, FileSize = 0, AddrDgusPack = 0;
 	memset(String, 0, sizeof(String));
 	memset(FilePath, 0, sizeof(FilePath));
-	memset(FileList, 0, sizeof(FileList));
 	/* (1) 读取控制字 */
 	ReadDGUS(ADDR_UP_CONFIG, FilePath, 4);
 	AddrDgusPack = ((UINT16)FilePath[3] << 8) | 0x00;
 	/* (2) 根据文件类型和文件编号获取文件参数 */
 	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
-	/* (3) 获取DWIN_SET目录下的所有文件 */
-	SysUpGetDWINFile(FileList);
-	/* (4) 查找出目录文件 */
-	Status = SysUpFileMatch(FileList, String, FilePath, &FileSize);
+	/* (3) 查找出目录文件 */
+	Protect = UpSpace;
+	Status = SysUpFileMatch(pFileList, String, FilePath, &FileSize);
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
 	//
 	UART5_SendString(FilePath);
 	UART5_SendString("\n");
 	//
-	/* (5) 把文件信息发送到升级空间 */
-	//SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
+	UpSpace = Protect;
+	/* (4) 把文件信息发送到升级空间 */
+	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
 }
 

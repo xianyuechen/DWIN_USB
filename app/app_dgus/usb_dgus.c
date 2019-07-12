@@ -16,6 +16,7 @@
 
 #include "usb_dgus.h"
 #include "app/app_usb/app_interface.h"
+#include "app/app_usb/file_sys.h"
 #include "driver/dgus/dgus.h"
 #include "driver/uart/uart.h"
 #include "string.h"
@@ -27,7 +28,8 @@ static UINT8 AckDiskInit(void);
 static void AckReadOrWriteFile(void);
 static void AckGetOrSetPath(void);
 static void AckSystemUp(void);
-static void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
+static void SystemUpDriver(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
+static UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 
 /********************************宏定义***************************************/
 /* USB DGUS寄存器地址 */
@@ -379,14 +381,18 @@ static void AckGetOrSetPath(void)
 static void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
+	UINT8 xdata FileList[0x320];		/* 40 * 20 */
 	UINT8 xdata Reset[4] = {0x55, 0xAA, 0x5A, 0xA5};
 	UINT8 FileType = 0;
 	UINT16 FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
+	memset(FileList, 0, sizeof(FileList));
 	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 	FileType = Cmd[0];
 	FileNumber = ((UINT16)Cmd[1] << 8) | Cmd[2];
-	SystemUpDriver(FileType, FileNumber, &Times);
+	SysUpGetDWINFile(FileList);			/* 获取DWIN_SET目录下的所有文件 */
+	//SendString(FileList, 100);
+	SystemUpDriver(FileList, FileType, FileNumber, &Times);
 	Cmd[0] = 0x00;
 	Cmd[1] = 0x00;
 	Cmd[2] = 0x00;
@@ -455,43 +461,62 @@ END:
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-static void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
+static void SystemUpDriver(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 {
 	UINT16 xdata Num = 0;
 	if (FileNumber != FLAG_ALL)		/* 如果是单个文件 直接升级 */ 
 	{
-		if (DWIN_OK == SystemUpdate(FileType, FileNumber)) (*pTimes)++;
+		if (DWIN_OK == SystemUpdate(pFileList, FileType, FileNumber)) (*pTimes)++;
 		goto END;
 	}
 	/* 对于某一类文件升级采取分成单个文件进行递归调用 */
 	if (FileType == FILE_ALL)
 	{
-		SystemUpDriver(FILE_T5L51_BIN, 	0x00FF, pTimes);
-		SystemUpDriver(FILE_DWINOS_BIN, 0x00FF, pTimes);
-		SystemUpDriver(FILE_XXX_LIB, FLAG_ALL, pTimes);
-		SystemUpDriver(FILE_XXX_BIN, FLAG_ALL, pTimes);
-		SystemUpDriver(FILE_XXX_ICL, FLAG_ALL, pTimes);
+		SystemUpDriver(pFileList, FILE_T5L51_BIN, 0x00FF, pTimes);
+		SystemUpDriver(pFileList, FILE_DWINOS_BIN, 0x00FF, pTimes);
+		SystemUpDriver(pFileList, FILE_XXX_LIB, FLAG_ALL, pTimes);
+		SystemUpDriver(pFileList, FILE_XXX_BIN, FLAG_ALL, pTimes);
+		SystemUpDriver(pFileList, FILE_XXX_ICL, FLAG_ALL, pTimes);
 	}
 	else if (FileType == FILE_XXX_LIB)
 	{
 		for (Num = 0; Num < 1000; Num++)
 		{
-			SystemUpDriver(FILE_XXX_LIB, Num, pTimes);
+			SystemUpDriver(pFileList, FILE_XXX_LIB, Num, pTimes);
 		}
 	}
 	else if (FileType == FILE_XXX_BIN)
 	{
 		for (Num = 0; Num < 32; Num++)	/* 0-31存放字库文件 */
 		{
-			SystemUpDriver(FILE_XXX_BIN, Num, pTimes);
+			SystemUpDriver(pFileList, FILE_XXX_BIN, Num, pTimes);
 		}
 	}
 	else if (FileType == FILE_XXX_ICL)	/* 32-999存放ICL文件 */
 	{
 		for (Num = 32; Num < 1000; Num++)
 		{
-			SystemUpDriver(FILE_XXX_ICL, Num, pTimes);
+			SystemUpDriver(pFileList, FILE_XXX_ICL, Num, pTimes);
 		}
 	}
 END:{}
+}
+
+/*****************************************************************************
+ 函 数 名  : SysUpGetDWINFile
+ 功能描述  : 从DWIN_SET路径下列出所有文件
+ 输入参数  : PUINT8 pMatchList	：匹配列表接收字符串
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月8日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+static UINT8 SysUpGetDWINFile(PUINT8 pMatchList)
+{
+	UINT8 Status = 0;
+	UINT8 i = 0;
+	Status = CH376MatchFile("*", DWIN_DIR, (P_FAT_NAME)pMatchList);
+	if (Status == ERR_MISS_FILE) return DWIN_OK; 
+	else return DWIN_ERROR;
 }

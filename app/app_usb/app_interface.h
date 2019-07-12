@@ -93,9 +93,8 @@ UINT8 RmFileOrDir(PUINT8 pPathName);								/* 删除文件或者目录 */
 UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 读取文件信息 */
 UINT8 WriteFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset);	/* 写入文件、不存在则新建 */
 UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
-UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
+UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
-UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 
 #endif
