@@ -18,28 +18,13 @@
 #include "driver/usb/para_port.h"
 #include "driver/uart/uart.h"
 #include "dgus_config.h"
-
-void Delay(void);
-unsigned int  TIMES = 0;
 void main()
 {
 	INIT_CPU(); 	
 	CH376_PORT_INIT();
+	TEST_IO = 1;
 	UART5_Init();
 	DgusRegConfig();	//以下三个函数初始化次序不能变 配置寄存器-USB扫描-DGUS演示DEMO
 	USBModule();
 	DGUSDemoInit();
-}
-
-void T0_ISR_PC(void)	interrupt 1
-{
-	EA = 0;
-	TIMES++;
-	TH0 = T1MS >> 8;
-    TL0 = T1MS;
-	if (TIMES == 100)
-	{
-		TIMES = 0;
-	}		
-	EA = 1;
 }

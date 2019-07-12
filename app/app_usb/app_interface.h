@@ -83,7 +83,7 @@ typedef struct _DIR_TYPE
 }DIR_TYPE, *P_DIR_TYPE;	
 /********************************对外函数声明*********************************/
 
-//UINT8 USBInit(void);												/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
+UINT8 USBInit(void);												/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
 UINT8 CheckIC(void);
 UINT8 CheckConnect(void);
 UINT8 CheckDiskInit(void);

@@ -64,7 +64,6 @@ static void Delay(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-/*
 UINT8 USBInit(void)
 {
 	UINT8 i = 0, Status = 0;
@@ -88,7 +87,7 @@ UINT8 USBInit(void)
 		if (CH376GetDiskStatus() >= DEF_DISK_MOUNTED && i >= 5) break;
 	}
 	return USB_INT_SUCCESS;
-}*/
+}
 
 /*****************************************************************************
  函 数 名  : CheckIC
@@ -697,7 +696,7 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 			memset(BufMesg, 0, 16); /* FirstPack Head Clean, Because of .ICL's scaning */
 			Count = 1;
 		}
-		SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, PackSize);	
+		SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, PackSize);
 		memset(BufMesg, 0, sizeof(BufMesg));
 		AddrFileSave += BUF_SIZE;		
 		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
