@@ -15,11 +15,17 @@
 ******************************************************************************/
 
 #include "usb_dgus.h"
-UINT8 AckDiskInit(void);
-void AckReadOrWriteFile(void);
-void AckGetOrSetPath(void);
-void AckSystemUp(void);
-void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
+#include "app/app_usb/app_interface.h"
+#include "driver/dgus/dgus.h"
+#include "driver/uart/uart.h"
+#include "string.h"
+#include "stdio.h"
+
+static UINT8 AckDiskInit(void);
+static void AckReadOrWriteFile(void);
+static void AckGetOrSetPath(void);
+static void AckSystemUp(void);
+static void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant;
 
 /********************************对内函数声明*********************************/
 
@@ -269,7 +275,7 @@ void AckSearchFile(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void AckReadOrWriteFile(void)
+static void AckReadOrWriteFile(void)
 {
 	UINT8 xdata Cmd[16];
 	UINT8 xdata Path[PATH_LENGTH];
@@ -323,7 +329,7 @@ void AckReadOrWriteFile(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void AckGetOrSetPath(void)
+static void AckGetOrSetPath(void)
 {
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Path[PATH_LENGTH];
@@ -372,7 +378,7 @@ void AckGetOrSetPath(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void AckSystemUp(void)
+static void AckSystemUp(void)
 {
 	UINT8 xdata Cmd[8];
 	UINT8 xdata Reset[4] = {0x55, 0xAA, 0x5A, 0xA5};
@@ -403,7 +409,7 @@ void AckSystemUp(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 AckDiskInit(void)
+static UINT8 AckDiskInit(void)
 {
 	UINT8 xdata Cmd[4];
 	UINT8 Status = DWIN_OK;
@@ -451,7 +457,7 @@ END:
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
+static void SystemUpDriver(UINT8 FileType, UINT16 FileNumber, PUINT16 pTimes) reentrant
 {
 	UINT16 xdata Num = 0;
 	if (FileNumber != FLAG_ALL)		/* 如果是单个文件 直接升级 */ 

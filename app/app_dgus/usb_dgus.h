@@ -16,12 +16,7 @@
 #ifndef _USB_DGUS_H_
 #define _USB_DGUS_H_
 
-#include "app/app_usb/app_interface.h"
-#include "driver/dgus/dgus.h"
-#include "driver/uart/uart.h"
 #include "driver/system/sys.h"
-#include "string.h"
-#include "stdio.h"
 
 /********************************对外函数声明*********************************/
 
@@ -30,5 +25,7 @@ void ReadDgusClientString(UINT32 AddrDgus, PUINT8 pData, PUINT16 pDataLen);
 void WriteDgusClientString(UINT32 AddrDgus, PUINT8 pData, UINT16 DataLen);
 void AckSearchFile(void);
 void AckCreateOrDelPath(void);
+
+/********************************外部函数声明*********************************/
 
 #endif

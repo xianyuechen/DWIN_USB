@@ -13,9 +13,11 @@
 作    者   : chenxianyue
 修改内容   : 	
 ******************************************************************************/
-#include "driver/system/sys.h"
+
 #ifndef __CH376_H__
 #define __CH376_H__
+
+#include "driver/system/sys.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -16,7 +16,6 @@
 #ifndef _UART_H_
 #define _UART_H_
 
-#include "t5los8051.h"
 #include "driver/system/sys.h"
 
 /********************************对外函数声明*********************************/

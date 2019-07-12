@@ -16,14 +16,7 @@
 #ifndef _APP_INTERFACE_H_
 #define _APP_INTERFACE_H_
 
-#include "app/app_usb/file_sys.h"
 #include "driver/system/sys.h"
-#include "driver/usb/para_port.h"
-#include "driver/usb/ch376.h"
-#include "driver/uart/uart.h"
-#include "driver/dgus/dgus.h"
-#include "string.h"
-#include "stdio.h"
 
 /********************************宏定义***************************************/
 #define	USB_DEVICE_OFF					(0x00)	/* 未启用USB设备方式 */
@@ -90,7 +83,7 @@ typedef struct _DIR_TYPE
 }DIR_TYPE, *P_DIR_TYPE;	
 /********************************对外函数声明*********************************/
 
-UINT8 USBInit(void);												/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
+//UINT8 USBInit(void);												/* 检测CH376通讯、设置USB工作模式、磁盘初始化 */
 UINT8 CheckIC(void);
 UINT8 CheckConnect(void);
 UINT8 CheckDiskInit(void);
@@ -103,14 +96,6 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf);
 UINT8 SystemUpdate(UINT8 FileType, UINT16 FileNumber);				/* 系统升级 */
 UINT8 GetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
 UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf);
-
-void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
 UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
-void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount);
-UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
-void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize);
-void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
-void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
-void SysUpWaitOsFinishRead(UINT32 AddrDgus);
 
 #endif

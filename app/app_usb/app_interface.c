@@ -15,10 +15,24 @@
 ******************************************************************************/
 
 #include "app_interface.h"
+#include "driver/usb/para_port.h"
+#include "driver/usb/ch376.h"
+#include "driver/uart/uart.h"
+#include "driver/dgus/dgus.h"
+#include "app/app_usb/file_sys.h"
+#include "string.h"
+#include "stdio.h"
 
 /********************************对内函数声明*********************************/
 
-void Delay(void);
+static void Delay(void);
+static void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
+static void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount);
+static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
+static void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize);
+static void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
+static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
+static void SysUpWaitOsFinishRead(UINT32 AddrDgus);
 
 /********************************函数定义开始*********************************/
 
@@ -32,7 +46,7 @@ void Delay(void);
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void Delay(void)
+static void Delay(void)
 {
 	UINT8 i, j;
 	for(i = 0; i < 100; i++)
@@ -50,21 +64,22 @@ void Delay(void)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
+/*
 UINT8 USBInit(void)
 {
 	UINT8 i = 0, Status = 0;
-	xWriteCH376Cmd(CMD11_CHECK_EXIST);  	/* 测试单片机与CH376之间的通讯接口 */
+	xWriteCH376Cmd(CMD11_CHECK_EXIST); 
 	xWriteCH376Data(0x65);
-	/* 通讯接口不正常,可能原因有:接口连接异常,其它设备影响(片选不唯一),串口波特率,一直在复位,晶振不工作 */ 
+
 	if (xReadCH376Data() != 0x9A)  return ERR_USB_UNKNOWN;
 
-	xWriteCH376Cmd(CMD11_SET_USB_MODE);		/* 设备USB工作模式 */
+	xWriteCH376Cmd(CMD11_SET_USB_MODE);
 	xWriteCH376Data(USB_HOST_ON_NO_SOF);
 	for (i=100; i!=0; i--) 
 		if (xReadCH376Data() == CMD_RET_SUCCESS) break;
 	if (0 == i) return ERR_USB_UNKNOWN;
 
-	for (i = 0; i < 100; i ++)				/* 检测磁盘状态 */								   
+	for (i = 0; i < 100; i ++)						   
 	{
 		Delay();
 		Status = CH376DiskMount();
@@ -73,7 +88,7 @@ UINT8 USBInit(void)
 		if (CH376GetDiskStatus() >= DEF_DISK_MOUNTED && i >= 5) break;
 	}
 	return USB_INT_SUCCESS;
-}
+}*/
 
 /*****************************************************************************
  函 数 名  : CheckIC
@@ -435,7 +450,7 @@ UINT8 MatchFile(PUINT8 pDir,PUINT8 pMatchString, PUINT8 pBuf)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
+static void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 pFileAddr, PUINT8 pString)
 {
 	if (FileType == FILE_T5L51_BIN)
 	{
@@ -514,7 +529,7 @@ UINT8 SysUpGetDWINFile(PUINT8 pMatchList)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
+static void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
 {	
 	if (*pDest > '9' || *pDest < '0')
 	{
@@ -545,7 +560,7 @@ void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize)
+static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize)
 {
 	UINT8 i = 0;
 	PUINT8 pNow = pDest;
@@ -583,7 +598,7 @@ UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFile
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SysUpWaitOsFinishRead(UINT32 AddrDgus)
+static void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
 	UINT8 Flag = 0;
 	do
@@ -607,7 +622,7 @@ void SysUpWaitOsFinishRead(UINT32 AddrDgus)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
+static void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize)
 {
 	*pBuf++ = Flag_EN;					/* 升级标志 */
 	*pBuf++ = UpSpace;					/* 升级空间选择 */
@@ -635,7 +650,7 @@ void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize)
+static void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize)
 {
 	SysUpWaitOsFinishRead(AddrDgusHead);
 	WriteDGUS(AddrDgusHead, BufHead, 10);
@@ -662,7 +677,7 @@ void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, 
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
+static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
 {
 	UINT8 xdata BufHead[CONTROL_SIZE];
 	UINT8 xdata BufMesg[BUF_SIZE];

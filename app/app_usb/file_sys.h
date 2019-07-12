@@ -16,11 +16,8 @@
 #ifndef _FILE_SYS_H_
 #define _FILE_SYS_H_
 
-#include "t5los8051.h"
 #include "driver/system/sys.h"
 #include "driver/usb/ch376.h"
-#include "driver/usb/para_port.h"
-#include "string.h"
 
 /********************************宏定义**************************************/
 #define	ERR_USB_UNKNOWN					(0xFA)	/* 未知错误,不应该发生的情况,需检查硬件或者程序错误 */
@@ -36,8 +33,8 @@ typedef struct _FAT_NAME
 }FAT_NAME, *P_FAT_NAME;
 
 /********************************对外函数声明*********************************/
-void AlphabetTransfrom(PUINT8 name);		/* 小写文件名统一转换为大写文件名 */
 
+void AlphabetTransfrom(PUINT8 name);		/* 小写文件名统一转换为大写文件名 */
 /* 文件操作 */
 UINT8 CH376Error(void);
 UINT8 CH376FileOpen(PUINT8 name);			/* 在根目录或者当前目录下打开文件或者目录(文件夹) */
@@ -62,5 +59,4 @@ UINT8 CH376SectorWrite(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount);	/* 以扇�
 UINT8 CH376SectorRead(PUINT8 buf, UINT8 ReqCount, PUINT8 RealCount);	/* 以扇区为单位从当前位置读取数据块,不支持SD卡 */
 UINT8 CH376SecLocate(UINT32 offset);		/* 以扇区为单位移动当前文件指针	*/
 
-UINT8	CH376CreateLongName( PUINT8 PathName, PUINT8 LongName );
 #endif
