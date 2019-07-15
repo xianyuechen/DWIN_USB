@@ -266,7 +266,7 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)	/* 读取文件信息 */	
+UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffset)
 {	/* 字符存储缓冲区pBuf 4096字节 = 8个扇区 */
 	UINT8 Status = 0;
 	UINT32 SectorCount = 0, Count = 0;
