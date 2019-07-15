@@ -13,16 +13,14 @@
 * 作    者   :
 * 修改内容   : 
 ******************************************************************************/
-#include "t5los8051.h"
 #include "app/app_dgus/usb_dgus.h"
 #include "driver/usb/para_port.h"
 #include "driver/uart/uart.h"
 #include "dgus_config.h"
 void main()
 {
-	INIT_CPU(); 	
+	INIT_CPU();	
 	CH376_PORT_INIT();
-	TEST_IO = 1;
 	UART5_Init();
 	DgusRegConfig();	//以下三个函数初始化次序不能变 配置寄存器-USB扫描-DGUS演示DEMO
 	USBModule();

@@ -147,6 +147,5 @@ sbit CH376_CS	=	P1^1;
 sbit CH376_WR	=	P1^2;
 sbit CH376_RD	=	P1^3;
 sbit CH376_INT_WIRE	= P1^4;
-sbit TEST_IO = P1^5;
 
 #endif

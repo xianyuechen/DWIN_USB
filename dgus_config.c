@@ -52,7 +52,7 @@ void DGUSDemoInit(void)
 void DgusRegConfig(void)
 {
 	UINT8 xdata Cmd[16];
-	UINT8 xdata filename[0x100];
+	UINT8 xdata filename[4];
 	memset(filename, 0, sizeof(filename));
 	memset(Cmd, 0, sizeof(Cmd));
 	/* 所有配置前两个字节都不配置，通过DGUS按钮触发 */
@@ -90,7 +90,7 @@ void DgusRegConfig(void)
 	WriteDGUS(0x5C1, Cmd, 4);
 	//SystemUP
 	Cmd[0] = 0xFF;
-	Cmd[1] = 0x00;
+	Cmd[1] = 0x5A;
 	WriteDGUS(0x5D5, Cmd, 2);
 }
 

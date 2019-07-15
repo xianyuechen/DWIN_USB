@@ -49,6 +49,7 @@ static UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 /* 标志位定义 */
 #define FLAG_START						(0x5A)		/* 开始标志 */
 #define FLAG_END						(0x00)		/* 结束标志 */
+#define FLAG_RESER						(0x5A)		/* 复位标志 */
 #define FLAG_READ						(0x5A)		/* 读取标志 */
 #define FLAG_WRITE						(0xA5)		/* 写入标志 */
 #define FLAG_CREATE						(0x5A)		/* 创建标志 */
@@ -193,14 +194,8 @@ void AckCreateOrDelPath(void)
 	ReadDgusClientString(AddrDgusPath, Path, &PathLength);
 	Path[PathLength] = 0;
 	/* (3) 根据控制字执行创建/删除 文件/目录的操作 */
-	if (Mod == FLAG_CREATE)
-	{
-		Cmd[1] = CreateFileOrDir(Path, FileType);
-	}
-	if (Mod == FLAG_DELETE)
-	{
-		Cmd[1] = RmFileOrDir(Path);
-	}
+	if (Mod == FLAG_CREATE) Cmd[1] = CreateFileOrDir(Path, FileType);
+	if (Mod == FLAG_DELETE) if (strlen(Path) != 1) Cmd[1] = RmFileOrDir(Path);
 	/* (4) 写入结果 */
 	Cmd[0] = 0;			/* 清除标志位 */
 	WriteDGUS(DGUS_ADDR_CREATE_OR_DEL_PATH, Cmd, sizeof(Cmd));
@@ -383,23 +378,24 @@ static void AckSystemUp(void)
 	UINT8 xdata Cmd[8];
 	UINT8 xdata FileList[0x320];		/* 40 * 20 */
 	UINT8 xdata Reset[4] = {0x55, 0xAA, 0x5A, 0xA5};
-	UINT8 FileType = 0;
+	UINT8 FileType = 0, ResetFlag = 0;
 	UINT16 FileNumber = 0, Times = 0;
 	memset(Cmd, 0, sizeof(Cmd));
 	memset(FileList, 0, sizeof(FileList));
 	ReadDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
 	FileType = Cmd[0];
 	FileNumber = ((UINT16)Cmd[1] << 8) | Cmd[2];
+	ResetFlag = Cmd[3];
 	SysUpGetDWINFile(FileList);			/* 获取DWIN_SET目录下的所有文件 */
-	//SendString(FileList, 100);
 	SystemUpDriver(FileList, FileType, FileNumber, &Times);
 	Cmd[0] = 0x00;
 	Cmd[1] = 0x00;
 	Cmd[2] = 0x00;
-	Cmd[3] = Times >> 8;
-	Cmd[4] = (UINT8)Times;
+	Cmd[3] = 0x00;
+	Cmd[4] = Times >> 8;
+	Cmd[5] = (UINT8)Times;
 	WriteDGUS(DGUS_ADDR_SYSTEM_UP, Cmd, sizeof(Cmd));
-	WriteDGUS(0x04, Reset, 4);
+	if (ResetFlag == FLAG_RESER) WriteDGUS(0x04, Reset, 4);
 }
 
 /*****************************************************************************
@@ -452,7 +448,8 @@ END:
 /*****************************************************************************
  函 数 名  : SystemUpDriver
  功能描述  : 系统升级驱动
- 输入参数  : UINT8 FileType		：文件类型
+ 输入参数  : PUINT8 pFileList	：DWIN_SET目录下面的文件列表
+			 UINT8 FileType		：文件类型
 			 UINT16 FileNumber	：文件编号
 			 PUINT16 pTimes		：升级成功数
  输出参数  : 无

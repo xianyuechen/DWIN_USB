@@ -31,7 +31,7 @@ static void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount);
 static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
 static void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 BufHead, PUINT8 BufMesg, UINT16 MesgSize);
 static void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAddr, UINT16 FileSize);
-static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
+static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT8 BufNumber, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize);
 static void SysUpWaitOsFinishRead(UINT32 AddrDgus);
 
 /********************************函数定义开始*********************************/
@@ -203,7 +203,7 @@ UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 		}
 		if (*pPathName == 0) break;
 	}
-	/* (2) 打开每一级目录或文件 不存在则新建 存在与之冲突的文件或目录则删除 */
+	/* (2) 打开每一级目录或文件 不存在则新建 存在与之冲突的文件或目录则直接停止 */
 	for (j = 0; j < i; j++)				
 	{
 		Status = CH376FileOpen(NameBuf[j]);
@@ -648,6 +648,7 @@ static void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 Bu
  功能描述  : 根据多组匹配字符串，从文件列表中查找出目标文件
  输入参数  : PUINT8 pPath		：文件绝对路径
 			 UINT8 UpSpace		：升级空间
+			 UINT8 BufNumber	：升级BUF可用数量
 			 UINT32 AddrDgusPck	：升级包缓冲区DGUS地址
 			 UINT32 AddrFileSave：文件保存地址
 			 UINT32 FileSize	：文件字节大小
@@ -657,15 +658,15 @@ static void SendUpPackToDGUS(UINT32 AddrDgusHead, UINT32 AddrDgusMesg, PUINT8 Bu
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
+static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT8 BufNumber, UINT32 AddrDgusPck,UINT32 AddrFileSave, UINT32 FileSize)
 {
 	UINT8 xdata BufHead[CONTROL_SIZE];
 	UINT8 xdata BufMesg[BUF_SIZE];
 	UINT8 Count = 0, i;
 	UINT16 PackSize = 0, FirstPackSize = 0;
 	UINT32 SectorOffset = 0, FirstAddrFileSave = 0;
-	UINT32 xdata AddrDgusPackHead[4];
-	UINT32 xdata AddrDgusPackMesg[4];
+	UINT32 xdata AddrDgusPackHead[16];
+	UINT32 xdata AddrDgusPackMesg[16];
 	
 	memset(BufHead, 0, sizeof(BufHead));
 	memset(BufMesg, 0, sizeof(BufMesg));
@@ -673,7 +674,7 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 	memset(AddrDgusPackMesg, 0, sizeof(AddrDgusPackMesg));
 	AddrDgusPackHead[0] = AddrDgusPck;
 	AddrDgusPackMesg[0] = AddrDgusPck + (CONTROL_SIZE / 2);
-	for (i = 1; i < 4; i++)
+	for (i = 1; i < BufNumber; i++)
 	{
 		AddrDgusPackHead[i] = AddrDgusPackHead[i - 1] + BUF_SIZE / 2 + CONTROL_SIZE / 2;
 		AddrDgusPackMesg[i] = AddrDgusPackMesg[i - 1] + BUF_SIZE / 2 + CONTROL_SIZE / 2;
@@ -706,16 +707,16 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 			memset(BufMesg, 0, 16); /* FirstPack Head Clean, Because of .ICL's scaning */
 			Count = 1;
 		}
-		if (i == 4) i = 0;
+		if (i == BufNumber) i = 0;
 		SendUpPackToDGUS(AddrDgusPackHead[i], AddrDgusPackMesg[i], BufHead, BufMesg, PackSize);
 		i++;
-		//memset(BufMesg, 0, sizeof(BufMesg));	/* */
+		//memset(BufMesg, 0, sizeof(BufMesg));	/* ReadFile has it's length, No need to clean */
 		AddrFileSave += BUF_SIZE;		
 		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
 	}
 	SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, FirstAddrFileSave, FirstPackSize);
 	ReadFile(pPath, BufMesg, FirstPackSize, 0);
-	if (i == 4) i = 0;
+	if (i == BufNumber) i = 0;
 	SendUpPackToDGUS(AddrDgusPackHead[i], AddrDgusPackMesg[i], BufHead, BufMesg, FirstPackSize);
 }
 
@@ -735,13 +736,13 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 {
 	UINT8 xdata String[24]; //4 * 6
 	UINT8 xdata FilePath[22];
-	UINT8 UpSpace = 0, Status = 0;
-	UINT8 Protect = 0;
+	UINT8 UpSpace = 0, Status = 0, Protect = 0, BufNumber = 0;
 	UINT32 AddrFile = 0, FileSize = 0, AddrDgusPack = 0;
 	memset(String, 0, sizeof(String));
 	memset(FilePath, 0, sizeof(FilePath));
 	/* (1) 读取控制字 */
 	ReadDGUS(ADDR_UP_CONFIG, FilePath, 4);
+	BufNumber = FilePath[2];
 	AddrDgusPack = ((UINT16)FilePath[3] << 8) | 0x00;
 	/* (2) 根据文件类型和文件编号获取文件参数 */
 	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
@@ -756,7 +757,7 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 	//
 	UpSpace = Protect;
 	/* (4) 把文件信息发送到升级空间 */
-	SysUpFileSend(FilePath, UpSpace, AddrDgusPack, AddrFile, FileSize);
+	SysUpFileSend(FilePath, UpSpace, BufNumber, AddrDgusPack, AddrFile, FileSize);
 	return DWIN_OK;
 }
 

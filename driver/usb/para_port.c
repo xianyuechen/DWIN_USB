@@ -56,7 +56,7 @@ void mDelay0_5uS()
 void CH376_PORT_INIT(void)
 {
 	P2MDOUT |= 0x00;
-	P1MDOUT |= 0x2F;
+	P1MDOUT |= 0x0F;
 	CH376_CS = 1;
 	CH376_WR = 1;
 	CH376_RD = 1;
