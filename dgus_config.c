@@ -19,8 +19,6 @@
 #include "driver/system/sys.h"
 #include "app/app_usb/app_interface.h"
 #include "app/app_dgus/usb_dgus.h"
-#include "driver/uart/uart.h"
-#include "driver/usb/para_port.h"
 #include "app/app_usb/file_sys.h"
 #include "driver/dgus/dgus.h"
 

@@ -256,11 +256,11 @@ UINT8 RmFileOrDir(PUINT8 pPathName)
 /*****************************************************************************
  函 数 名  : ReadFile
  功能描述  : 读取文件信息	   (读取大小比文件总大小大时，只会读取文件扇区偏移后总大小)
- 输入参数  : PUINT8 pPathName  文件绝对路径名
-             PUINT8 pBuf       缓冲区数据长度
-			 UINT16 DataLen    读取数据的长度
-			 UINT32 SectorOffset 读取的起始扇区位置	 
- 输出参数  : USB_INT_SUCCESS 成功
+ 输入参数  : PUINT8 pPathName	：文件绝对路径名
+             PUINT8 pBuf		：缓冲区数据长度
+			 UINT16 DataLen		：读取数据的长度
+			 UINT32 SectorOffset：读取的起始扇区位置 
+ 输出参数  : DWIN_OK 成功
  			 其他 出错
  修改历史  :
  日    期  : 2019年6月21日
@@ -313,11 +313,12 @@ UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffs
 
 /*****************************************************************************
  函 数 名  : WriteFile
- 功能描述  : 入文件、不存在则新建
- 输入参数  : PUINT8 pPathName  文件绝对路径名
-             PUINT8 pBuf       缓冲区数据长度
-			 UINT8 Flag        写入标志位: 从文件头部写入/从文件尾部写入	 
- 输出参数  : USB_INT_SUCCESS 成功
+ 功能描述  : 写入文件、不存在则新建
+ 输入参数  : PUINT8 pPathName	：文件绝对路径名
+             PUINT8 pBuf		：缓冲区数据长度
+			 UINT16 DataLen		：写入数据长度
+			 UINT32 SectorOffset：数据的扇区偏移
+ 输出参数  : DWIN_OK 成功
  			 其他 出错
  修改历史  :
  日    期  : 2019年6月21日
@@ -521,8 +522,8 @@ static void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount)
 		if (*pDest != *pSource) return;
 		pDest++;
 		pSource++;
-	}while(*pSource >= '0' && *pSource <= '9');
-		
+	}
+	while(*pSource >= '0' && *pSource <= '9');	
 	(*pCount)++;
 }
 
@@ -622,8 +623,8 @@ static void SysUpPcakSet(PUINT8 pBuf, UINT8 Flag_EN, UINT8 UpSpace, UINT32 UpAdd
  输入参数  : UINT32 AddrDgusHead：头包DGUS地址
 			 UINT32 AddrDgusMesg：尾包DGUS地址
 			 PUINT8 BufHead		：头包指针
-			 PUINT8 BufMesg		：尾包指针
-			 UINT16 MesgSize	：4K尾包实际数据字节大小
+			 PUINT8 BufMesg		：数据包指针
+			 UINT16 MesgSize	：4K数据包包实际数据字节大小
  输出参数  : 无
  修改历史  :
  日    期  : 2019年7月8日
@@ -704,7 +705,7 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT8 BufNumber, UINT32 A
 		ReadFile(pPath, BufMesg, PackSize, SectorOffset);
 		if (Count == 0) 
 		{
-			memset(BufMesg, 0, 16); /* FirstPack Head Clean, Because of .ICL's scaning */
+			memset(BufMesg, 0, 16); /* Firstpack head clean, because of .ICL's scaning */
 			Count = 1;
 		}
 		if (i == BufNumber) i = 0;
@@ -747,7 +748,7 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 	/* (2) 根据文件类型和文件编号获取文件参数 */
 	SysUpGetFileMesg(FileType, FileNumber, &UpSpace, &AddrFile, String);
 	/* (3) 查找出目录文件 */
-	Protect = UpSpace;
+	Protect = UpSpace;		/* 数据保护, SysUpFileMatch接口存在BUG */
 	Status = SysUpFileMatch(pFileList, String, FilePath, &FileSize);
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
