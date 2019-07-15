@@ -274,7 +274,7 @@ UINT8 ReadFile(PUINT8 pPathName, PUINT8 pData, UINT16 DataLen, UINT32 SectorOffs
 	UINT32 FileSize = 0;
 	if (NULL == pPathName)	return DWIN_NULL_POINT;
 	AlphabetTransfrom(pPathName);
-	memset(pData, 0, BUF_SIZE);	
+	//memset(pData, 0, BUF_SIZE);
 	/* (1) 检测文件存在与否,获取文件长度和可读取扇区数 */
 	Status = CH376FileOpenPath(pPathName);	
 	if (Status != USB_INT_SUCCESS) return DWIN_ERROR;
@@ -709,7 +709,7 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 		if (i == 4) i = 0;
 		SendUpPackToDGUS(AddrDgusPackHead[i], AddrDgusPackMesg[i], BufHead, BufMesg, PackSize);
 		i++;
-		//memset(BufMesg, 0, sizeof(BufMesg));
+		//memset(BufMesg, 0, sizeof(BufMesg));	/* */
 		AddrFileSave += BUF_SIZE;		
 		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
 	}
