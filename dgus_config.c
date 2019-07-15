@@ -18,7 +18,7 @@
 #include "stdio.h"
 #include "driver/system/sys.h"
 #include "app/app_usb/app_interface.h"
-#include "app/app_dgus/usb_dgus.h"
+#include "app/app_usb/usb_dgus.h"
 #include "app/app_usb/file_sys.h"
 #include "driver/dgus/dgus.h"
 
@@ -34,12 +34,22 @@ static void PageDriver(PUINT8 pNumber, UINT8 Type);
 static void ClickPathUpdate(UINT8 Number);
 static UINT8 GetPathAttr(PUINT8 pPath);
 static void DelPath(void);
-static void MesseageShow(void);		/* 文件属性DGUS显示 */
+static void MesseageShow(void);
 static void PageClickAck(void);
 static void BackToPreviousAck(void);
 
 /********************************函数定义开始*********************************/
 
+/*****************************************************************************
+ 函 数 名  : DGUSDemoInit
+ 功能描述  : DGUS Demo相关初始化
+ 输入参数  : 无
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void DGUSDemoInit(void)
 {
 	MesseageShow();
@@ -47,54 +57,64 @@ void DGUSDemoInit(void)
 	BackToPreviousAck();
 }
 
+/*****************************************************************************
+ 函 数 名  : DgusRegConfig
+ 功能描述  : DGUS Demo 寄存器配置
+ 输入参数  : 无
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 void DgusRegConfig(void)
 {
-	UINT8 xdata Cmd[16];
-	UINT8 xdata filename[4];
-	memset(filename, 0, sizeof(filename));
+	UINT8 xdata Cmd[0x10];
+	UINT8 xdata MatchString[0x04];
+	memset(MatchString, 0, sizeof(MatchString));
 	memset(Cmd, 0, sizeof(Cmd));
 	/* 所有配置前两个字节都不配置，通过DGUS按钮触发 */
 	//配置：创建或者删除文件
-	Cmd[0] = 0x55;
-	Cmd[1] = 0xE0;
+	Cmd[0] = 0x55;	/* 类型为文件 */
+	Cmd[1] = 0xE0;	/* 路径保存DGUS地址 */
 	Cmd[2] = 0x00;
 	WriteDGUS(0x5C5, Cmd, 4);
 	//配置：获取文件列表
-	filename[0] = '*';
-	WriteDGUS(0xE040, filename, 3);
-	Cmd[0] = 0xC0;
+	MatchString[0] = '*';
+	WriteDGUS(0xE040, MatchString, 3);
+	Cmd[0] = 0xC0;	/* 实际操作路径保存DGUS地址 */
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xE0;
+	Cmd[2] = 0xE0;	/* 路径保存DGUS地址 */
 	Cmd[3] = 0x40;
-	Cmd[4] = 0xE0;
+	Cmd[4] = 0xE0;	/* 匹配列表保存DGUS地址 */
 	Cmd[5] = 0x48;
 	WriteDGUS(0x5D1, Cmd, 6);
 	//配置：读写文件
-	Cmd[0] = 0xE0;
+	Cmd[0] = 0xE0;	/* 路径保存DGUS地址 */
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xE2;
-	Cmd[3] = 0x00;
-	Cmd[4] = 0x00;
+	Cmd[2] = 0xE2;	/* 文件信息保存DGUS地址 */
+	Cmd[3] = 0x00;	
+	Cmd[4] = 0x00;	/* 扇区偏移为0 */
 	Cmd[5] = 0x00;
 	Cmd[6] = 0x00;
-	Cmd[7] = 0x10;
+	Cmd[7] = 0x10;	/* 4096个字节 */
 	Cmd[8] = 0x00;
 	WriteDGUS(0x5C9, Cmd, 10);
 	//配置：文件属性获取或设置
-	Cmd[0] = 0xE0;
+	Cmd[0] = 0xE0;	/* 路径保存DGUS地址 */
 	Cmd[1] = 0x00;
-	Cmd[2] = 0xE1;
+	Cmd[2] = 0xE1;	/* 文件属性保存DGUS地址 */
 	Cmd[3] = 0x88;
 	WriteDGUS(0x5C1, Cmd, 4);
-	//SystemUP
-	Cmd[0] = 0xFF;
-	Cmd[1] = 0x5A;
+	//配置：系统升级
+	Cmd[0] = 0xFF;	/* 整体升级 */
+	Cmd[1] = 0x5A;	/* 升级完毕自动复位 */
 	WriteDGUS(0x5D5, Cmd, 2);
 }
 
 /*****************************************************************************
- 函 数 名  : 文件属性DGUS显示
- 功能描述  : 系统升级驱动
+ 函 数 名  : MesseageShow
+ 功能描述  : 文件属性DGUS显示
  输入参数  : 无
  输出参数  : 无
  修改历史  :
@@ -151,6 +171,16 @@ static void MesseageShow(void)
 	WriteDGUS(0xE1E0, String, sizeof(String));
 }
 
+/*****************************************************************************
+ 函 数 名  : PageClickAck
+ 功能描述  : 翻页操作
+ 输入参数  : 无
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 static void PageClickAck(void)
 {
 	UINT8 xdata Cmd[10];
@@ -158,12 +188,7 @@ static void PageClickAck(void)
 	UINT8 SearchAckFilePath[2];
 	UINT16 DgusShowLen = 0, SearchAckFileLen = 0; 
 	UINT8 PageNumber = 0, Number = 0;
-	//
-	UINT8 xdata FileName[40];
-	memset(FileName, 0, 40);
-	strcpy(FileName, "/sss/ddd/xxx/ddd");
-	FileName[strlen(FileName) + 1] = 0xFF;
-	//
+	
 	DgusShowLen =  sizeof(DgusShowPath);
 	SearchAckFileLen = sizeof(SearchAckFileLen);
 	memset(Cmd, 0, sizeof(Cmd));
@@ -179,25 +204,33 @@ static void PageClickAck(void)
 	Cmd[9] = PageNumber;
 	if (DgusShowPath[0] != '/') 			/* 加根目录处理 */
 	{
-		//
-		//CreateFileOrDir(FileName, 0x55);
-		//
 		DgusShowPath[0] = '/';
 		WriteDgusClientString(0xE000, DgusShowPath, 1);
 	}
 	if (SearchAckFilePath[0] == 0)
-	{
+	{										/* 第一次会把显示路径设置成工作路径 */
 		WriteDgusClientString(0xC000, DgusShowPath, sizeof(DgusShowPath));
 	}
-	for (Number = 2; Number < 10; Number++)
+	for (Number = 2; Number < 10; Number++) /* 与DGUS按钮响应对应, 0-1字节是上下翻页, 2-9字节是点击文件名 */
 	{
 		if (Cmd[Number] == 0x5A) ClickPathUpdate(Number - 2);
 	}
-	memset(Cmd, 0, sizeof(Cmd)-1);	/* 最后一个字符不写入，作为翻页记录 */
+	memset(Cmd, 0, sizeof(Cmd)-1);			/* 最后一个字符不写入，作为翻页记录 */
 	WriteDGUS(0x5DA, Cmd, sizeof(Cmd));
 }
 
-static void PageDriver(PUINT8 pNumber, UINT8 Type)		/* 翻页处理驱动：原理是重新获取文件列表 根据文件页码重新写入制定区域 */
+/*****************************************************************************
+ 函 数 名  : PageDriver
+ 功能描述  : 翻页处理驱动：原理是重新获取文件列表 根据文件页码重新写入制定区域
+ 输入参数  : PUINT8 pNumber	：页码号
+			 UINT8 Type		：翻页类型 上一页/下一页
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
+static void PageDriver(PUINT8 pNumber, UINT8 Type)
 {
 	UINT8 xdata FileList[0x320];
 	UINT8 xdata FileShow[0x320];
@@ -219,6 +252,18 @@ static void PageDriver(PUINT8 pNumber, UINT8 Type)		/* 翻页处理驱动：原�
 	WriteDGUS(0xE048, FileShow, sizeof(FileShow));
 }
 
+/*****************************************************************************
+ 函 数 名  : ClickPathUpdate
+ 功能描述  : 点击文件名自动刷新页面, 文件夹则进入文件夹, 文件则不会进入, 自动
+			 把名字加到路径上, 文件名为文件夹则会写入到工作路径, 否则只会写入
+			 到显示路径
+ 输入参数  : UINT8 Number	：被点击的文件序号, 从上到下
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 static void ClickPathUpdate(UINT8 Number)
 {
 	UINT8 xdata Path[64];
@@ -248,6 +293,16 @@ static void ClickPathUpdate(UINT8 Number)
 	WriteDgusClientString(0xE000, Path, strlen(Path));
 }
 
+/*****************************************************************************
+ 函 数 名  : GetPathAttr
+ 功能描述  : 获取路径属性 用以简单判断是文件还是文件夹
+ 输入参数  : PUINT8 pPath	：路径
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 static UINT8 GetPathAttr(PUINT8 pPath)
 {
 	UINT8 Status = 0;
@@ -257,6 +312,16 @@ static UINT8 GetPathAttr(PUINT8 pPath)
 	return Status;
 }
 
+/*****************************************************************************
+ 函 数 名  : BackToPreviousAck
+ 功能描述  : 返回上一级路径响应, 直接跳到上一级文件夹
+ 输入参数  : PUINT8 pPath	：路径
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 static void BackToPreviousAck(void)
 {
 	UINT8 Cmd[4];
@@ -270,6 +335,16 @@ static void BackToPreviousAck(void)
 	}
 }
 
+/*****************************************************************************
+ 函 数 名  : DelPath
+ 功能描述  : 删除路径中的最后一级文件夹字符串 esp:/DWIN_SET/T5L51.BIN -> /
+ 输入参数  : 无
+ 输出参数  : 无
+ 修改历史  :
+ 日    期  : 2019年7月15日
+ 作    者  : chenxianyue
+ 修改内容  : 创建
+*****************************************************************************/
 static void DelPath(void)
 {
 	UINT8 xdata DgusShowPath[64];
@@ -303,7 +378,7 @@ static void DelPath(void)
 		}
 		DgusShowPath[i - 1] = 0;
 	}
-	WriteDgusClientString(0xE000, DgusShowPath, DgusShowLen);
-	WriteDgusClientString(0xC000, DgusShowPath, DgusShowLen);
-	AckSearchFile();
+	WriteDgusClientString(0xE000, DgusShowPath, DgusShowLen);	/* 写入到路径栏 */
+	WriteDgusClientString(0xC000, DgusShowPath, DgusShowLen);	/* 写入到实际操作路径栏 */
+	AckSearchFile();	/* 刷新一次文件列表 */
 }

@@ -16,8 +16,6 @@
 
 #include "app_interface.h"
 #include "driver/usb/para_port.h"
-#include "driver/usb/ch376.h"
-#include "driver/uart/uart.h"
 #include "driver/dgus/dgus.h"
 #include "app/app_usb/file_sys.h"
 #include "string.h"
@@ -26,6 +24,7 @@
 /********************************对内函数声明*********************************/
 
 static void Delay(void);
+static UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath);
 static void SysUpGetFileMesg(UINT8 FileType, UINT16 FileNumber, PUINT8 pUpSpace, PUINT32 FileAddr, PUINT8 String);
 static void NumberStringMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pCount);
 static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT32 pFileSize);
@@ -182,7 +181,7 @@ UINT8 CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
  作    者  : chenxianyue
  修改内容  : 创建
 *****************************************************************************/
-UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
+static UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 {
 	UINT8 xdata NameBuf[PATH_NUMBER][12];
 	UINT8 i = 0;
@@ -752,10 +751,6 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 	Status = SysUpFileMatch(pFileList, String, FilePath, &FileSize);
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
-	//
-	UART5_SendString(FilePath);
-	UART5_SendString("\n");
-	//
 	UpSpace = Protect;
 	/* (4) 把文件信息发送到升级空间 */
 	SysUpFileSend(FilePath, UpSpace, BufNumber, AddrDgusPack, AddrFile, FileSize);

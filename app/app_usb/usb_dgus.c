@@ -15,10 +15,9 @@
 ******************************************************************************/
 
 #include "usb_dgus.h"
-#include "app/app_usb/app_interface.h"
-#include "app/app_usb/file_sys.h"
+#include "app_interface.h"
+#include "file_sys.h"
 #include "driver/dgus/dgus.h"
-#include "driver/uart/uart.h"
 #include "string.h"
 #include "stdio.h"
 
@@ -72,7 +71,7 @@ static UINT8 SysUpGetDWINFile(PUINT8 pMatchList);
 
 /*****************************************************************************
  函 数 名  : USBModule
- 功能描述  : 唯一对外接口 自动扫描DGUS命令标志并执行相应操作
+ 功能描述  : 自动扫描DGUS命令标志位并执行相应操作
  输入参数  : 无	 
  输出参数  : 无
  修改历史  :

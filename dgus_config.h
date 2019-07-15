@@ -18,7 +18,7 @@
 
 /********************************对外函数声明*********************************/
 
-void DGUSDemoInit(void);
-void DgusRegConfig(void);
+void DGUSDemoInit(void);	/* DGUS Demo相关初始化 */
+void DgusRegConfig(void);	/* DGUS Demo 寄存器配置 */
 
 #endif
