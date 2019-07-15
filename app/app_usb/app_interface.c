@@ -581,11 +581,9 @@ static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT3
 static void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
 	UINT8 Flag = 0;
-	UART5_Sendbyte(0xFF);
 	do
 	{
 		ReadDGUS(AddrDgus, &Flag, 1);
-		UART5_Sendbyte(Flag);
 	}
 	while(Flag == FLAG_EN);
 }
@@ -663,14 +661,24 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 {
 	UINT8 xdata BufHead[CONTROL_SIZE];
 	UINT8 xdata BufMesg[BUF_SIZE];
-	UINT8 Count = 0;
+	UINT8 Count = 0, i;
 	UINT16 PackSize = 0, FirstPackSize = 0;
 	UINT32 SectorOffset = 0, FirstAddrFileSave = 0;
-	UINT32 AddrDgusPackHead = 0, AddrDgusPackMesg = 0;
+	UINT32 xdata AddrDgusPackHead[4];
+	UINT32 xdata AddrDgusPackMesg[4];
+	
 	memset(BufHead, 0, sizeof(BufHead));
 	memset(BufMesg, 0, sizeof(BufMesg));
-	AddrDgusPackHead = AddrDgusPck;
-	AddrDgusPackMesg = AddrDgusPck + (CONTROL_SIZE / 2);
+	memset(AddrDgusPackHead, 0, sizeof(AddrDgusPackHead));
+	memset(AddrDgusPackMesg, 0, sizeof(AddrDgusPackMesg));
+	AddrDgusPackHead[0] = AddrDgusPck;
+	AddrDgusPackMesg[0] = AddrDgusPck + (CONTROL_SIZE / 2);
+	for (i = 1; i < 4; i++)
+	{
+		AddrDgusPackHead[i] = AddrDgusPackHead[i - 1] + BUF_SIZE / 2 + CONTROL_SIZE / 2;
+		AddrDgusPackMesg[i] = AddrDgusPackMesg[i - 1] + BUF_SIZE / 2 + CONTROL_SIZE / 2;
+	}
+	i = 0;
 	if(FileSize > BUF_SIZE) FirstPackSize = BUF_SIZE;
 	else 
 	{
@@ -698,14 +706,17 @@ static void SysUpFileSend(PUINT8 pPath, UINT8 UpSpace, UINT32 AddrDgusPck,UINT32
 			memset(BufMesg, 0, 16); /* FirstPack Head Clean, Because of .ICL's scaning */
 			Count = 1;
 		}
-		SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, PackSize);
-		memset(BufMesg, 0, sizeof(BufMesg));
+		if (i == 4) i = 0;
+		SendUpPackToDGUS(AddrDgusPackHead[i], AddrDgusPackMesg[i], BufHead, BufMesg, PackSize);
+		i++;
+		//memset(BufMesg, 0, sizeof(BufMesg));
 		AddrFileSave += BUF_SIZE;		
 		SectorOffset += BUF_SIZE / DEF_SECTOR_SIZE;
 	}
 	SysUpPcakSet(BufHead, FLAG_NO_EN, UpSpace, FirstAddrFileSave, FirstPackSize);
 	ReadFile(pPath, BufMesg, FirstPackSize, 0);
-	SendUpPackToDGUS(AddrDgusPackHead, AddrDgusPackMesg, BufHead, BufMesg, FirstPackSize);
+	if (i == 4) i = 0;
+	SendUpPackToDGUS(AddrDgusPackHead[i], AddrDgusPackMesg[i], BufHead, BufMesg, FirstPackSize);
 }
 
 /*****************************************************************************
@@ -740,8 +751,8 @@ UINT8 SystemUpdate(PUINT8 pFileList, UINT8 FileType, UINT16 FileNumber)
 	if (Status != DWIN_OK) return DWIN_ERROR;
 	if (FileSize == 0) return DWIN_ERROR;
 	//
-	//UART5_SendString(FilePath);
-	//UART5_SendString("\n");
+	UART5_SendString(FilePath);
+	UART5_SendString("\n");
 	//
 	UpSpace = Protect;
 	/* (4) 把文件信息发送到升级空间 */
