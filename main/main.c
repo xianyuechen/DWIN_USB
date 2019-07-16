@@ -13,16 +13,11 @@
 * 作    者   :
 * 修改内容   : 
 ******************************************************************************/
-#include "app/app_usb/usb_dgus.h"
-#include "driver/usb/para_port.h"
-#include "dgus_config.h"
+
+#include "driver/system/sys.h"
+
 void main()
 {
-	INIT_CPU();			//51初始化	
-	CH376_PORT_INIT();	//CH376 IO初始化
-	
-	/* 以下模块可以放入定时器 */
-	DgusRegConfig();	//以下三个函数初始化次序不能变 配置寄存器-USB扫描-DGUS演示DEMO
-	USBModule();
-	DGUSDemoInit();
+	INIT_CPU();			//51初始化
+	while(1);
 }

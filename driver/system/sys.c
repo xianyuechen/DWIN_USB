@@ -16,6 +16,11 @@
 
 #include "sys.h"
 #include "t5los8051.h"
+#include "app/app_usb/usb_dgus.h"
+#include "driver/usb/para_port.h"
+#include "main/dgus_config.h"
+
+UINT8 T0_Times = 0;
 
 /********************************函数定义开始*********************************/
 
@@ -59,6 +64,25 @@ void INIT_CPU(void)
 	TMOD |= 0x01;
 	TH0 = T1MS >> 8;
 	TL0 = T1MS;
-	ET0=1;
-	TR0=1;
+	ET0 = 1;
+	TR0 = 1;
+	
+	EA = 1;
+}
+
+void T0_Timer(void)    interrupt 1
+{
+	EA = 0;
+    TH0 = T1MS>>8;
+    TL0 = T1MS;
+	T0_Times++;
+	if (T0_Times == 50)
+	{
+		T0_Times = 0;
+		CH376_PORT_INIT();
+		DgusRegConfig();
+		USBModule();
+		DGUSDemoInit();
+	}
+	EA = 1;
 }

@@ -211,11 +211,6 @@ static UINT8 CH376CreateFileOrDir(PUINT8 pPathName, UINT8 TypePath)
 			if (Status == ERR_MISS_FILE)							/* 发现 文件或目录不存在 */
 			{
 				if (USB_INT_SUCCESS != CH376FileCreate(NameBuf[j])) return CH376Error();
-				CH376FileOpen(NameBuf[j]);							/* 这里处理创建文件出现乱码头的问题 */
-				NameBuf[j + 1][0] = 0;
-				NameBuf[j + 1][1] = 0;
-				CH376SectorWrite(NameBuf[j + 1], 2, NULL);
-				CH376CloseFile(0);
 			}
 			if (Status == ERR_OPEN_DIR)	return CH376Error();		/* 发现是目录 */
 		}
@@ -581,9 +576,13 @@ static UINT8 SysUpFileMatch(PUINT8 pSource, PUINT8 pDest, PUINT8 pResult, PUINT3
 static void SysUpWaitOsFinishRead(UINT32 AddrDgus)
 {
 	UINT8 Flag = 0;
+	UINT16 i = 0, j = 0;
 	do
 	{
 		ReadDGUS(AddrDgus, &Flag, 1);
+		i++;
+		if (i == 500) j++;
+		if (j == 500) return;	/* 超时自动推出 */
 	}
 	while(Flag == FLAG_EN);
 }
@@ -817,7 +816,6 @@ UINT8 SetFileMessage(PUINT8 pFilePath, PUINT8 pBuf)
 	pFatDir -> DIR_CrtDate  = pDir -> DIR_CrtDate;
 	pFatDir -> DIR_WrtTime  = pDir -> DIR_WrtTime;
 	pFatDir -> DIR_WrtDate  = pDir -> DIR_WrtDate;
-	pFatDir -> DIR_FileSize = pDir -> DIR_FileSize;
 	Status = CH376SetFileMessage(pFilePath, (P_FAT_DIR_INFO)FatDir);
 	return Status;
 }
