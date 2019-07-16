@@ -11,7 +11,6 @@ obj/T5L51
 usb_mode.uvopt
 usb_mode_uvopt.bak
 usb_mode_uvproj.bak
-*.uvproj
 *.htm
 *.13762
 *.md
