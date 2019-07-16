@@ -18,8 +18,10 @@
 #include "dgus_config.h"
 void main()
 {
-	INIT_CPU();	
-	CH376_PORT_INIT();
+	INIT_CPU();			//51初始化	
+	CH376_PORT_INIT();	//CH376 IO初始化
+	
+	/* 以下模块可以放入定时器 */
 	DgusRegConfig();	//以下三个函数初始化次序不能变 配置寄存器-USB扫描-DGUS演示DEMO
 	USBModule();
 	DGUSDemoInit();
